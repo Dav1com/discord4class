@@ -4,7 +4,7 @@ open System
 open MongoDB.Driver
 open MongoDB.Bson
 
-module Guild =
+module GuildConfiguration =
 
     [<Literal>]
     let private CollectionName = "GuildConfiguration"
