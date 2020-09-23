@@ -23,5 +23,5 @@ module Guild =
         GroupPersistence : bool
         IsEveryoneStudent : bool }
 
-        static member Get (client : MongoClient) (filter : QueryBuilder<GuildConfiguration>) =
+        static member Get (db : IMongoDatabase) (filter : FilterDefinitionBuilder<GuildConfiguration>) =
             ()
