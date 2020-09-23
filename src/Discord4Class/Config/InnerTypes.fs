@@ -21,13 +21,8 @@ module InnerTypes =
         [<DefaultValue("true")>]   CommandByMention : bool
         [<DefaultValue("Admin")>]  AdminRole : string }
 
-    type DbDriverConfig =
-        | MongoDB
-//TODO: | SQLite
-
     type Persistence =
-      { DbDriver : DbDriverConfig
-        DbUrl : string
+      { DbUrl : string
         [<DefaultValue("")>] DbUser : string
         [<DefaultValue("")>] DbPass : string}
 
