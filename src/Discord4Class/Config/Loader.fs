@@ -7,6 +7,7 @@ open FsConfig
 open Discord4Class.Lang.Loader
 open Discord4Class.Config.InnerTypes
 open Discord4Class.Config.Types
+open Discord4Class.Db
 
 module Loader =
 
@@ -26,7 +27,7 @@ module Loader =
                     AppVersion = assembly.Version.ToString()
                     DocsURL = "<PlaceHolder>"
                     JoinGuildURL = "<PlaceHolder>"
-                    LangFilesPath = langPath
+                    DbDatabase = openConnection c.Persistence.DbUrl c.Persistence.DbUser c.Persistence.DbPass
                 }
                 Lang = fullLang
                 Guild = {

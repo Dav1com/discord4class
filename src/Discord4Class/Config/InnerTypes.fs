@@ -1,7 +1,7 @@
 namespace Discord4Class.Config
 
 open FsConfig
-open Discord4Class.DbDriver.Types
+open MongoDB.Driver
 open Discord4Class.Lang.Types
 
 // this module should not be directly opened,
@@ -27,7 +27,7 @@ module InnerTypes =
 
     type Persistence =
       { DbDriver : DbDriverConfig
-        DbPath : string
+        DbUrl : string
         [<DefaultValue("")>] DbUser : string
         [<DefaultValue("")>] DbPass : string}
 
@@ -50,11 +50,8 @@ module InnerTypes =
         AppVersion : string // Located in .fsproj
         DocsURL : string // TODO: Move to app.config
         JoinGuildURL : string // TODO: Move to app.config
-        LangFilesPath : string } // TODO: Move to app.config
+        DbDatabase : IMongoDatabase }
 
     type GuildConfig =
       { LangLocale : string
         Lang : LangBuilders }
-
-    type Db =
-      { Driver : Driver }
