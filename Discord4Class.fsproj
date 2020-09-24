@@ -6,12 +6,12 @@
   <ItemGroup>
     <Compile Include="src/Discord4Class/Helpers/*.fs" />
     <Compile Include="src/Discord4Class/Db.fs" />
+    <Compile Include="src/Discord4Class/Repositories/*.fs" />
     <Compile Include="src/Discord4Class/Lang/Types.fs" />
     <Compile Include="src/Discord4Class/Lang/Loader.fs" />
     <Compile Include="src/Discord4Class/Config/InnerTypes.fs" />
     <Compile Include="src/Discord4Class/Config/Types.fs" />
     <Compile Include="src/Discord4Class/Config/Loader.fs" />
-    <Compile Include="src/Discord4Class/Repositories/*.fs" />
     <Compile Include="src/Discord4Class/Commands/*.fs" />
     <Compile Include="src/Discord4Class/BotCommands.fs" />
     <Compile Include="src/Discord4Class/EventManagers/*.fs" />
