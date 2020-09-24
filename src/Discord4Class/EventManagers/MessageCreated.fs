@@ -1,11 +1,9 @@
 namespace Discord4Class.EventManagers
 
 open System.Threading.Tasks
-open DSharpPlus.CommandsNext.Exceptions
 open DSharpPlus.EventArgs
-open Discord4Class.Helpers.Railway
 open Discord4Class.Config.Types
-//open Discord4Class.Database.Driver
+open Discord4Class.Config.Loader
 open Discord4Class.Commands.Exception
 open Discord4Class.BotCommands
 
@@ -26,37 +24,37 @@ module MessageCreated =
 
     let private getCommand config (e : MessageCreateEventArgs) = function
         | ByPrefix ->
-            (e.Message.Content.Substring config.Bot.CommandPrefix.Length)
-                .Trim()
-            |> Ok
+            (e.Message.Content.Substring config.Guild.CommandPrefix.Length)
+                .Trim().Split " "
+            |> Array.head
+            |> Some
         | ByMention ->
             (e.Message.Content.Substring (e.Client.CurrentUser.Mention.Length+1))
-                .Trim()
-            |> Ok
-        | NoCmd -> Error ()
+                .Trim().Split " "
+            |> Array.head
+            |> Some
+        | NoCmd -> None
 
     let exec config (e : MessageCreateEventArgs) =
         try
             if e.Channel.IsPrivate then
                 Task.CompletedTask
             elif not e.Author.IsCurrent then
+                let guildConf = loadGuildConfiguration config config.App.DbDatabase e.Guild.Id
 
-                detectCallType config e
-                |> getCommand config e
-                >>= switch (fun cmd -> Map.tryFind cmd BotCommands)
-                >>= switch (function
-                    | Some t -> t
-                    | None -> raise (CommandNotFoundException e.Message.Content)
-                )
-                >>= switch (fun f ->
-                    (f config e)
-                    |> Async.StartAsTask
-                    :> Task
-                )
-                |> errorBe Task.CompletedTask
+                detectCallType guildConf e
+                |> getCommand guildConf e
+                |> function
+                    | Some cmd ->
+                        cmd
+                        |> BotCommands.TryFind
+                        |> function
+                            | Some f -> f guildConf e
+                            | None -> cmdNotFound cmd guildConf e
+                    | None ->
+                        Task.CompletedTask
 
             else
                 Task.CompletedTask
         with
-            | :? CommandNotFoundException as ex -> cmdNotFound config e ex
             | ex -> cmdErrorUnknown config e ex
