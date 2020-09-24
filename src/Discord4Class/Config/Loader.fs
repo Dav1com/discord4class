@@ -4,10 +4,12 @@ open System.IO
 open System.Reflection
 open Microsoft.Extensions.Configuration
 open FsConfig
+open Discord4Class.Helpers.Option
+open Discord4Class.Db
+open Discord4Class.Repositories.GuildConfiguration
 open Discord4Class.Lang.Loader
 open Discord4Class.Config.InnerTypes
 open Discord4Class.Config.Types
-open Discord4Class.Db
 
 module Loader =
 
@@ -27,12 +29,13 @@ module Loader =
                     AppVersion = assembly.Version.ToString()
                     DocsURL = "<PlaceHolder>"
                     JoinGuildURL = "<PlaceHolder>"
-                    DbDatabase = openConnection c.Persistence.DbUrl c.Persistence.DbUser c.Persistence.DbPass
+                    DbDatabase = openConnection c.Persistence.DbUri
                 }
                 Lang = fullLang
                 Guild = {
-                    LangLocale = defLang
                     Lang = fullLang.[defLang]
+                    CommandPrefix = c.Bot.CommandPrefix
+                    IsConfigOnDb = false
                 }
             }
         | Error err ->
@@ -54,3 +57,30 @@ module Loader =
         let ac = AppConfig c
         ac.Get<IniConfig> ()
         |> extractConfigOrFail
+
+    let loadGuildConfiguration (c : Config) db (gui : uint64) =
+
+        let gc =
+            GC.Filter.And [
+                GC.Filter.Eq((fun x -> x._id), gui)
+            ]
+            |> GC.GetOne db
+            |> Async.RunSynchronously
+        match gc with
+        | Some g ->
+            { c with
+                Guild = {
+                    Lang = c.Lang.[g.Language]
+                    CommandPrefix = g.CommandPrefix
+                    IsConfigOnDb = true
+                }
+            }
+        | None ->
+            { c with
+                Guild = {
+                    Lang = c.Lang.[c.Bot.DefaultLang]
+                    CommandPrefix = c.Bot.CommandPrefix
+                    IsConfigOnDb = false
+                }
+            }
+

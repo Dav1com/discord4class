@@ -22,9 +22,7 @@ module InnerTypes =
         [<DefaultValue("Admin")>]  AdminRole : string }
 
     type Persistence =
-      { DbUrl : string
-        [<DefaultValue("")>] DbUser : string
-        [<DefaultValue("")>] DbPass : string}
+      { DbUri : string }
 
     type LogLevelConf =
         | Off
@@ -48,5 +46,6 @@ module InnerTypes =
         DbDatabase : IMongoDatabase }
 
     type GuildConfig =
-      { LangLocale : string
-        Lang : LangBuilders }
+      { Lang : LangBuilders
+        CommandPrefix : string
+        IsConfigOnDb : bool }
