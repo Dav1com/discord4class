@@ -39,6 +39,7 @@ module Bot =
 
         AsyncEventHandler<MessageCreateEventArgs>(MessageCreated.exec config)
         |> discord.add_MessageCreated
+        //TODO: discord.add_GuildCreated // send welcome message
         //TODO: discord.add_GuildRoleCreated //asks for quick actions
         //TODO: discord.add_GuildRoleDeleted //check roles integrity and updates
         //TODO: discord.add_GuildRoleUpdated //check roles integrity and updates
