@@ -17,6 +17,9 @@ module Types =
         ErrorCmdUnknown : string
         ErrorEmbedAuthor : string
         JoinGuildMessage : string
+        LangMissingArg : string
+        LangNotFound : string
+        LangSuccess : string
         PingSuccess : string
         ResponseToDm : string
         //</StringsDefinition>
@@ -30,10 +33,13 @@ module Types =
 
     type LangBuilders =
       { //<BuilderDefinition>
-        ErrorCmdNotFound : s -> s -> string
-        ErrorCmdUnknown : s -> s -> s -> string
+        ErrorCmdNotFound : s -> string
+        ErrorCmdUnknown : s -> s -> string
         ErrorEmbedAuthor : string
         JoinGuildMessage : s -> s -> s -> string
+        LangMissingArg : s -> s -> string
+        LangNotFound : s -> string
+        LangSuccess : string
         PingSuccess : i -> string
         ResponseToDm : s -> s -> string
         //</BuilderDefinition>
@@ -46,6 +52,9 @@ module Types =
                 ErrorCmdUnknown = sprintf (Printf.StringFormat<_> l.ErrorCmdUnknown)
                 ErrorEmbedAuthor = sprintf (Printf.StringFormat<_> l.ErrorEmbedAuthor)
                 JoinGuildMessage = sprintf (Printf.StringFormat<_> l.JoinGuildMessage)
+                LangMissingArg = sprintf (Printf.StringFormat<_> l.LangMissingArg)
+                LangNotFound = sprintf (Printf.StringFormat<_> l.LangNotFound)
+                LangSuccess = sprintf (Printf.StringFormat<_> l.LangSuccess)
                 PingSuccess = sprintf (Printf.StringFormat<_> l.PingSuccess)
                 ResponseToDm = sprintf (Printf.StringFormat<_> l.ResponseToDm)
                 //</BuilderConversion>
