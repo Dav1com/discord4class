@@ -53,7 +53,8 @@ module MessageCreated =
                             | None -> cmdNotFound cmd guildConf e
                     | None ->
                         Task.CompletedTask
-
+            elif e.Message.Content.Length = 0 then
+                sendWelcome config e
             else
                 Task.CompletedTask
         with
