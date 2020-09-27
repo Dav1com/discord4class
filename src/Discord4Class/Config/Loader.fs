@@ -36,6 +36,7 @@ module Loader =
                     Lang = fullLang.[defLang]
                     CommandPrefix = c.Bot.CommandPrefix
                     IsConfigOnDb = false
+                    Channels = None
                 }
             }
         | Error err ->
@@ -59,7 +60,6 @@ module Loader =
         |> extractConfigOrFail
 
     let loadGuildConfiguration (c : Config) db (gui : uint64) =
-
         let gc =
             GC.Filter.And [
                 GC.Filter.Eq((fun x -> x._id), gui)
@@ -73,6 +73,7 @@ module Loader =
                     Lang = c.Lang.[g.Language]
                     CommandPrefix = g.CommandPrefix
                     IsConfigOnDb = true
+                    Channels = g.Channels
                 }
             }
         | None ->
@@ -81,6 +82,7 @@ module Loader =
                     Lang = c.Lang.[c.Bot.DefaultLang]
                     CommandPrefix = c.Bot.CommandPrefix
                     IsConfigOnDb = false
+                    Channels = None
                 }
             }
 

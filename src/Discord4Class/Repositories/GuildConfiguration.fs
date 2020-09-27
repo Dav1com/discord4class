@@ -12,7 +12,8 @@ module GuildConfiguration =
     type GuildConfiguration =
       { _id : uint64 //GuildId
         CommandPrefix : string
-        Language : string }
+        Language : string
+        Channels : ChannelsData option}
 
         static member Filter = Builders<GuildConfiguration>.Filter
         static member Update = Builders<GuildConfiguration>.Update
