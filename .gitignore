@@ -3,5 +3,5 @@
 .vscode
 bin
 obj
-
+.nogit
 .fake
