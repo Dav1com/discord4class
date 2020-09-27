@@ -4,7 +4,7 @@ open System.Text.RegularExpressions
 
 printfn "Generating Lang Types ..."
 
-let BaseFilePath = __SOURCE_DIRECTORY__ + "/../res/lang/en-us.ini"
+let BaseFilePath = __SOURCE_DIRECTORY__ + "/../res/lang/en-US.ini"
 let TargetFilePath = __SOURCE_DIRECTORY__ + "/../src/Discord4Class/Lang/Types.fs"
 let StringsStartTag = "//<StringsDefinition>"
 let StringsEndTag = "//</StringsDefinition>"
