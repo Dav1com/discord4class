@@ -12,5 +12,8 @@ module BotCommands =
             ("ping", Ping.exec)
             ("lang", Lang.exec)
             ("language", Lang.exec)
+            ("prefix", Prefix.exec)
+            ("init", Init.exec)
+            ("destroy", Destroy.exec)
         ]
         |> Map.ofSeq
