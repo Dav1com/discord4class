@@ -6,10 +6,10 @@
   <ItemGroup>
     <Compile Include="src/Discord4Class/Helpers/*.fs" />
     <Compile Include="src/Discord4Class/Db.fs" />
-    <Compile Include="src/Discord4Class/Repositories/*.fs" />
     <Compile Include="src/Discord4Class/Lang/Types.fs" />
     <Compile Include="src/Discord4Class/Lang/Loader.fs" />
     <Compile Include="src/Discord4Class/Config/InnerTypes.fs" />
+    <Compile Include="src/Discord4Class/Repositories/*.fs" />
     <Compile Include="src/Discord4Class/Config/Types.fs" />
     <Compile Include="src/Discord4Class/Config/Loader.fs" />
     <Compile Include="src/Discord4Class/Commands/*.fs" />
@@ -25,6 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DSharpPlus.CommandsNext" Version="3.2.3" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="3.2.3" />
     <PackageReference Include="FSharp.Quotations.Evaluator" Version="2.1.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Ini" Version="3.1.8" />
