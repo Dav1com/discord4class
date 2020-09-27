@@ -18,8 +18,7 @@ module InnerTypes =
         [<DefaultValue("true")>]   Multilangual : bool
         [<DefaultValue("en-us")>]  DefaultLang : string
         [<DefaultValue("!")>]      CommandPrefix : string
-        [<DefaultValue("true")>]   CommandByMention : bool
-        [<DefaultValue("Admin")>]  AdminRole : string }
+        [<DefaultValue("true")>]   CommandByMention : bool }
 
     type Persistence =
       { DbUri : string }
@@ -30,8 +29,7 @@ module InnerTypes =
         | Debug
 
     type Preferences =
-      { AutoStartBot : bool
-        LogLevel : LogLevelConf }
+      { LogLevel : LogLevelConf }
 
     type IniConfig =
       { Bot : BotConf

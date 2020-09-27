@@ -53,10 +53,4 @@ module Args =
                     { conf.Bot with
                         BotToken = t }
             }
-        | Mode m ->
-            { conf with
-                Bot =
-                    { conf.Bot with
-                        Mode = m }
-                    }
         | _ -> conf
