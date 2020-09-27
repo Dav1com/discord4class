@@ -13,9 +13,6 @@ module InnerTypes =
 
     type BotConf =
       { BotToken : string
-        [<DefaultValue("Discord4Class")>] BotName : string
-        [<DefaultValue("Public")>] Mode : BotMode
-        [<DefaultValue("true")>]   Multilangual : bool
         [<DefaultValue("en-us")>]  DefaultLang : string
         [<DefaultValue("!")>]      CommandPrefix : string
         [<DefaultValue("true")>]   CommandByMention : bool }
@@ -43,7 +40,13 @@ module InnerTypes =
         JoinGuildURL : string // TODO: Move to app.config
         DbDatabase : IMongoDatabase }
 
+    type ChannelsData =
+      { TeachersText : uint64
+        ClassText : uint64
+        ClassVoice : uint64 }
+
     type GuildConfig =
       { Lang : LangBuilders
         CommandPrefix : string
-        IsConfigOnDb : bool }
+        IsConfigOnDb : bool
+        Channels : ChannelsData option }
