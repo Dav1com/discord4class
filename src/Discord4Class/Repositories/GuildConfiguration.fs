@@ -1,8 +1,7 @@
 namespace Discord4Class.Repositories
 
-open System
 open MongoDB.Driver
-open MongoDB.Bson
+open Discord4Class.Config.InnerTypes
 
 module GuildConfiguration =
 
@@ -47,6 +46,11 @@ module GuildConfiguration =
         static member UpdateOne (db : IMongoDatabase) (filter : FilterDefinition<GuildConfiguration>) (update : UpdateDefinition<GuildConfiguration>) =
             db.GetCollection<GuildConfiguration>(CollectionName)
                 .UpdateOneAsync(filter, update)
+            |> Async.AwaitTask
+
+        static member DeleteOne (db : IMongoDatabase) (filter : FilterDefinition<GuildConfiguration>) =
+            db.GetCollection<GuildConfiguration>(CollectionName)
+                .DeleteOneAsync filter
             |> Async.AwaitTask
 
     type GC = GuildConfiguration
