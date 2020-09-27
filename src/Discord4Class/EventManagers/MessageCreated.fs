@@ -1,9 +1,11 @@
 namespace Discord4Class.EventManagers
 
+open System
 open System.Threading.Tasks
 open DSharpPlus.EventArgs
 open Discord4Class.Config.Types
 open Discord4Class.Config.Loader
+open Discord4Class.Commands.Welcome
 open Discord4Class.Commands.Exception
 open Discord4Class.BotCommands
 
@@ -15,7 +17,7 @@ module MessageCreated =
         | NoCmd
 
     let private detectCallType config (e : MessageCreateEventArgs) =
-        if e.Message.Content.StartsWith config.Bot.CommandPrefix then
+        if e.Message.Content.StartsWith config.Guild.CommandPrefix then
             ByPrefix
         elif config.Bot.CommandByMention && e.Message.Content.StartsWith (e.Client.CurrentUser.Mention.Insert(2, "!")) then
             ByMention
@@ -24,14 +26,16 @@ module MessageCreated =
 
     let private getCommand config (e : MessageCreateEventArgs) = function
         | ByPrefix ->
-            (e.Message.Content.Substring config.Guild.CommandPrefix.Length)
+            ((e.Message.Content.Substring config.Guild.CommandPrefix.Length)
                 .Trim().Split " "
-            |> Array.head
+            |> Array.head)
+                .ToLower()
             |> Some
         | ByMention ->
-            (e.Message.Content.Substring (e.Client.CurrentUser.Mention.Length+1))
+            ((e.Message.Content.Substring (e.Client.CurrentUser.Mention.Length+1))
                 .Trim().Split " "
-            |> Array.head
+            |> Array.head)
+                .ToLower()
             |> Some
         | NoCmd -> None
 
