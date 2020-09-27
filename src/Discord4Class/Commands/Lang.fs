@@ -1,5 +1,6 @@
 namespace Discord4Class.Commands
 
+open System.Globalization
 open System.Threading.Tasks
 open DSharpPlus.EventArgs
 open Discord4Class.Repositories.GuildConfiguration
@@ -8,47 +9,51 @@ open Discord4Class.Config.Types
 module Lang =
 
     let exec config (e : MessageCreateEventArgs) =
-        let newLang =
-            (e.Message.Content.Split " "
-            |> Array.last)
-                .ToLower()
-        newLang
-        |> config.Lang.TryFind
-        |> function
-            | Some l ->
-                if not config.Guild.IsConfigOnDb then
-                    [
-                        GC.Insert config.App.DbDatabase {
-                            _id = e.Guild.Id
-                            CommandPrefix = config.Bot.CommandPrefix
-                            Language = newLang }
-                        |> Async.Ignore
-                    ]
-                else
-                    let filter =
-                        GC.Filter.And [
-                            GC.Filter.Eq((fun x -> x._id), e.Guild.Id)
+        async {
+            let newLang =
+                (e.Message.Content.Split " "
+                |> Array.last)
+                    .ToLower()
+            newLang
+            |> config.Lang.TryFind
+            |> function
+                | Some l ->
+                    if config.Guild.IsConfigOnDb then
+                        let filter =
+                            GC.Filter.And [
+                                GC.Filter.Eq((fun x -> x._id), e.Guild.Id)
+                            ]
+                        let update = GC.Update.Set((fun x -> x.Language), newLang)
+                        [
+                            GC.UpdateOne config.App.DbDatabase filter update
+                            |> Async.Ignore
                         ]
-                    let update = GC.Update.Set((fun x -> x.Language), newLang)
-                    [
-                        GC.UpdateOne config.App.DbDatabase filter update
-                        |> Async.Ignore
-                    ]
-                |> List.append
-                    [
-                        l.LangSuccess
-                        |> fun s -> e.Channel.SendMessageAsync(s, false)
-                        |> Async.AwaitTask
-                        |> Async.Ignore
-                    ]
-                |> Async.Parallel
-                |> Async.StartAsTask
-                :> Task
-            | None ->
-                if newLang = "lang" || newLang = config.Guild.CommandPrefix + "lang" then
-                    config.Guild.Lang.LangMissingArg config.Guild.CommandPrefix config.App.DocsURL
-                    |> fun s -> e.Channel.SendMessageAsync(s, false)
-                else
-                    config.Guild.Lang.LangNotFound config.App.DocsURL
-                    |> fun s -> e.Channel.SendMessageAsync(s, false)
-                :> Task
+                    else
+                        [
+                            GC.Insert config.App.DbDatabase {
+                                _id = e.Guild.Id
+                                CommandPrefix = config.Bot.CommandPrefix
+                                Language = newLang
+                                Channels = None }
+                            |> Async.Ignore
+                        ]
+                    |> List.append
+                        [
+                            l.LangSuccess (CultureInfo newLang).NativeName
+                            |> fun s -> e.Channel.SendMessageAsync(s)
+                            |> Async.AwaitTask
+                            |> Async.Ignore
+                        ]
+                    |> Async.Parallel
+                    |> Async.Ignore
+                | None ->
+                    if newLang.Contains "lang" then
+                        config.Guild.Lang.LangMissingArg config.Guild.CommandPrefix config.App.DocsURL
+                        |> fun s -> e.Channel.SendMessageAsync(s)
+                        |> Async.AwaitTask |> Async.Ignore
+                    else
+                        config.Guild.Lang.LangNotFound config.App.DocsURL
+                        |> fun s -> e.Channel.SendMessageAsync(s)
+                        |> Async.AwaitTask |> Async.Ignore
+            |> Async.RunSynchronously
+        } |> Async.StartAsTask :> Task
