@@ -7,7 +7,7 @@ open Discord4Class.Commands
 
 module BotCommands =
 
-    let (BotCommands : Map<string, Config -> string -> MessageCreateEventArgs -> Task>) =
+    let (BotCommands : Map<string, Config -> string -> MessageCreateEventArgs -> unit Async>) =
         [
             ("ping", Ping.exec)
             ("lang", Lang.exec)

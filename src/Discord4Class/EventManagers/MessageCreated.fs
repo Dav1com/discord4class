@@ -66,26 +66,29 @@ module MessageCreated =
         | NoCmd -> None
 
     let exec config (e : MessageCreateEventArgs) =
-        try
-            if e.Channel.IsPrivate then
-                Task.CompletedTask
-            elif not e.Author.IsCurrent then
-                let guildConf = loadGuildConfiguration config config.App.DbDatabase e.Guild.Id
+        async {
+            try
+                if e.Channel.IsPrivate then
+                    ()
+                elif not e.Author.IsCurrent then
+                    let guildConf = loadGuildConfiguration config config.App.DbDatabase e.Guild.Id
 
-                detectCallType guildConf e
-                |> getCommand guildConf e
-                |> function
-                    | Some cmd ->
-                        cmd.Name
-                        |> BotCommands.TryFind
-                        |> function
-                            | Some f -> f guildConf cmd.Args e
-                            | None -> cmdNotFound cmd.Name guildConf e
-                    | None ->
-                        Task.CompletedTask
-            elif e.Message.Content.Length = 0 then
-                sendWelcome config e
-            else
-                Task.CompletedTask
-        with
-            | ex -> cmdErrorUnknown config e ex
+                    detectCallType guildConf e
+                    |> getCommand guildConf e
+                    |> function
+                        | Some cmd ->
+                            cmd.Name
+                            |> BotCommands.TryFind
+                            |> function
+                                | Some f -> f guildConf cmd.Args e
+                                | None -> cmdNotFound cmd.Name guildConf e
+                            |> Async.RunSynchronously
+                        | None ->
+                            ()
+                elif e.Message.Content.Length = 0 then
+                    sendWelcome config e |> Async.RunSynchronously
+                else
+                    ()
+            with
+                | ex -> cmdErrorUnknown config e ex |> Async.RunSynchronously
+        } |> Async.StartAsTask :> Task

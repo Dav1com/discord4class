@@ -108,46 +108,45 @@ module Config =
             ("teacher-role", updateTeacherRole)
         |] |> Map.ofArray
 
-    let exec config args (e : MessageCreateEventArgs) =
-        async {
-            if checkPermissions e RequiredPerms then
-                match configName args with
-                | Some s ->
-                    configNames.TryFind s
-                    |> function
-                        | Some f ->
-                            f config args e
-                            |> Async.RunSynchronously
-                            |> function
-                                | Success ->
-                                    config.Guild.Lang.ConfigSuccess
-                                | InvalidNewValue s ->
-                                    config.Guild.Lang.ConfigInvalidNewValue s
-                                | ShowValue (s, v) ->
-                                    match v with
-                                    | Channel o ->
-                                        match o with
-                                        | Some i -> Some (e.Guild.GetChannel(i).Mention)
-                                        | None -> None
-                                    | Role o ->
-                                        match o with
-                                        | Some i -> Some (e.Guild.GetRole(i).Mention)
-                                        | None -> None
-                                    |> function
-                                        | Some s2 -> config.Guild.Lang.ConfigActualValue s s2
-                                        | None -> config.Guild.Lang.ConfigActualValueNull s
-                                | UnsetNull ->
-                                    config.Guild.Lang.ConfigUnsetNull
-                                | UnsetSuccess ->
-                                    config.Guild.Lang.ConfigUnsetSuccess
-                            |> fun s -> e.Channel.SendMessageAsync(s)
-                            |> Async.AwaitTask |> Async.Ignore
-                        | None ->
-                            async.Zero()
-                | None ->
-                    config.Guild.Lang.ConfigMissingName config.Guild.CommandPrefix
-                    |> fun s -> e.Channel.SendMessageAsync(s)
-                    |> Async.AwaitTask
-                    |> Async.Ignore
-                |> Async.RunSynchronously
-        } |> Async.StartAsTask :> Task
+    let exec config args (e : MessageCreateEventArgs) = async {
+        if checkPermissions e RequiredPerms then
+            match configName args with
+            | Some s ->
+                configNames.TryFind s
+                |> function
+                    | Some f ->
+                        f config args e
+                        |> Async.RunSynchronously
+                        |> function
+                            | Success ->
+                                config.Guild.Lang.ConfigSuccess
+                            | InvalidNewValue s ->
+                                config.Guild.Lang.ConfigInvalidNewValue s
+                            | ShowValue (s, v) ->
+                                match v with
+                                | Channel o ->
+                                    match o with
+                                    | Some i -> Some (e.Guild.GetChannel(i).Mention)
+                                    | None -> None
+                                | Role o ->
+                                    match o with
+                                    | Some i -> Some (e.Guild.GetRole(i).Mention)
+                                    | None -> None
+                                |> function
+                                    | Some s2 -> config.Guild.Lang.ConfigActualValue s s2
+                                    | None -> config.Guild.Lang.ConfigActualValueNull s
+                            | UnsetNull ->
+                                config.Guild.Lang.ConfigUnsetNull
+                            | UnsetSuccess ->
+                                config.Guild.Lang.ConfigUnsetSuccess
+                        |> fun s -> e.Channel.SendMessageAsync(s)
+                        |> Async.AwaitTask |> Async.Ignore
+                    | None ->
+                        async.Zero()
+            | None ->
+                config.Guild.Lang.ConfigMissingName config.Guild.CommandPrefix
+                |> fun s -> e.Channel.SendMessageAsync(s)
+                |> Async.AwaitTask
+                |> Async.Ignore
+            |> Async.RunSynchronously
+    }

@@ -62,19 +62,18 @@ module Destroy =
                 |> ignore
     )
 
-    let exec config _ (e : MessageCreateEventArgs) =
-        async {
-            if checkPermissions e RequiredPerms then
-                let! confirmMsg =
-                    config.Guild.Lang.DestroyConfirmationMsg
-                        config.Guild.Lang.ConfirmationYesResponse
-                        config.Guild.Lang.ConfirmationNoResponse
-                    |> fun s -> e.Channel.SendMessageAsync(s)
-                    |> Async.AwaitTask
+    let exec config _ (e : MessageCreateEventArgs) = async {
+        if checkPermissions e RequiredPerms then
+            let! confirmMsg =
+                config.Guild.Lang.DestroyConfirmationMsg
+                    config.Guild.Lang.ConfirmationYesResponse
+                    config.Guild.Lang.ConfirmationNoResponse
+                |> fun s -> e.Channel.SendMessageAsync(s)
+                |> Async.AwaitTask
 
-                let inter = (e.Client :?> DiscordClient).GetInteractivityModule()
-                inter.WaitForMessageAsync(
-                        predicate config e.Message, Nullable (TimeSpan.FromSeconds ConfirmTimeout))
-                    .ContinueWith( afterConfirmation config confirmMsg e)
-                |> ignore
-        } |> Async.StartAsTask :> Task
+            let inter = (e.Client :?> DiscordClient).GetInteractivityModule()
+            inter.WaitForMessageAsync(
+                    predicate config e.Message, Nullable (TimeSpan.FromSeconds ConfirmTimeout))
+                .ContinueWith( afterConfirmation config confirmMsg e)
+            |> ignore
+    }

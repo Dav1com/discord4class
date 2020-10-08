@@ -13,24 +13,22 @@ module Exception =
     [<Literal>]
     let private EmbedColor = 0xFF0000
 
-    let cmdNotFound cmd config (msg : MessageCreateEventArgs) =
-        async {
-            let embed =
-                config.Guild.Lang.ErrorCmdNotFound cmd
-                |> newEmbed EmbedColor config.Guild.Lang.ErrorEmbedAuthor
-            msg.Channel.SendMessageAsync(msg.Author.Mention, false, embed)
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
-            |> ignore
-        } |> Async.StartAsTask :> Task
+    let cmdNotFound cmd config (msg : MessageCreateEventArgs) = async {
+        let embed =
+            config.Guild.Lang.ErrorCmdNotFound cmd
+            |> newEmbed EmbedColor config.Guild.Lang.ErrorEmbedAuthor
+        msg.Channel.SendMessageAsync(msg.Author.Mention, false, embed)
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+        |> ignore
+    }
 
-    let cmdErrorUnknown config (msg : MessageCreateEventArgs) (ex : exn) =
-        async {
-            let embed =
-                config.Guild.Lang.ErrorCmdUnknown (ex.GetType().ToString()) ex.Message
-                |> newEmbed EmbedColor config.Guild.Lang.ErrorEmbedAuthor
-            msg.Channel.SendMessageAsync(msg.Author.Mention, false, embed)
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
-            |> ignore
-        } |> Async.StartAsTask :> Task
+    let cmdErrorUnknown config (msg : MessageCreateEventArgs) (ex : exn) = async {
+        let embed =
+            config.Guild.Lang.ErrorCmdUnknown (ex.GetType().ToString()) ex.Message
+            |> newEmbed EmbedColor config.Guild.Lang.ErrorEmbedAuthor
+        msg.Channel.SendMessageAsync(msg.Author.Mention, false, embed)
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+        |> ignore
+    }
