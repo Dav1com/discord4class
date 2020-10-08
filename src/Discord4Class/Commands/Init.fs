@@ -6,11 +6,15 @@ open DSharpPlus
 open DSharpPlus.Entities
 open DSharpPlus.EventArgs
 open DSharpPlus.Interactivity
+open Discord4Class.Helpers.Permission
 open Discord4Class.Config.InnerTypes
 open Discord4Class.Config.Types
 open Discord4Class.Repositories.GuildConfiguration
 
 module Init =
+
+    [<Literal>]
+    let RequiredPerms = Permissions.Administrator
 
     let private messageCreated config (e : DiscordMessage) = Func<DiscordMessage, bool> (fun e2 ->
         e.ChannelId = e2.ChannelId && e2.Author.Id = e.Author.Id && (
@@ -94,29 +98,33 @@ module Init =
 
     let exec config mode (e : MessageCreateEventArgs) =
         async {
-            if config.Guild.Channels.IsSome then
-                config.Guild.Lang.InitAlreadyInited config.Guild.CommandPrefix
-                |> fun s -> e.Channel.SendMessageAsync(s)
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-                |> ignore
-            else
-                let initMsg =
-                    config.Guild.Lang.InitConfirmationMsg config.Guild.CommandPrefix
-                        config.Guild.CommandPrefix config.Guild.Lang.ConfirmationYesResponse
-                        config.Guild.Lang.ConfirmationNoResponse
+            if checkPermissions e RequiredPerms then
+                if
+                    config.Guild.TeachersText.IsSome ||
+                    config.Guild.ClassVoice.IsSome
+                then
+                    config.Guild.Lang.InitAlreadyInited config.Guild.CommandPrefix
                     |> fun s -> e.Channel.SendMessageAsync(s)
                     |> Async.AwaitTask
                     |> Async.RunSynchronously
+                    |> ignore
+                else
+                    let initMsg =
+                        config.Guild.Lang.InitConfirmationMsg config.Guild.CommandPrefix
+                            config.Guild.CommandPrefix config.Guild.Lang.ConfirmationYesResponse
+                            config.Guild.Lang.ConfirmationNoResponse
+                        |> fun s -> e.Channel.SendMessageAsync(s)
+                        |> Async.AwaitTask
+                        |> Async.RunSynchronously
 
-                let inter = (e.Client :?> DiscordClient).GetInteractivityModule()
+                    let inter = (e.Client :?> DiscordClient).GetInteractivityModule()
 
-                // This took me a long time to figure it out,
-                // using Taks.Delay, Async.Sleep, Async.RunSynchronously, even running in parallel
-                // blocked the threads of the main MessageCreated event. And (Task<_> ...).RunSynchronously()
-                // raises an exeption in DSharpPlus
-                inter.WaitForMessageAsync(
-                        messageCreated config e.Message, Nullable (TimeSpan.FromSeconds 30.0))
-                    .ContinueWith (afterConfirmation config initMsg e)
-                |> ignore
+                    // This took me a long time to figure it out,
+                    // using Taks.Delay, Async.Sleep, Async.RunSynchronously, even running in parallel
+                    // blocked the threads of the main MessageCreated event. And (Task<_> ...).RunSynchronously()
+                    // raises an exeption in DSharpPlus
+                    inter.WaitForMessageAsync(
+                            messageCreated config e.Message, Nullable (TimeSpan.FromSeconds 30.0))
+                        .ContinueWith (afterConfirmation config initMsg e)
+                    |> ignore
         } |> Async.StartAsTask :> Task
