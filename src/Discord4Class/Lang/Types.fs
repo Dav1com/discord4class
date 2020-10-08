@@ -12,6 +12,14 @@ module Types =
         ClassCategoryName : string
         ClassTextChannelName : string
         ClassVoiceChannelName : string
+        ConfigActualValue : string
+        ConfigActualValueNull : string
+        ConfigInvalidName : string
+        ConfigInvalidNewValue : string
+        ConfigMissingName : string
+        ConfigSuccess : string
+        ConfigUnsetNull : string
+        ConfigUnsetSuccess : string
         ConfirmationCancellation : string
         ConfirmationNoResponse : string
         ConfirmationTimeoutMessage : string
@@ -33,6 +41,10 @@ module Types =
         PrefixNoChange : string
         PrefixSuccess : string
         PrefixTooLong : string
+        QuestionNotInitialized : string
+        QuestionReaction : string
+        QuestionReceived : string
+        QuestionSended : string
         ResponseToDm : string
         StudentsRoleName : string
         TeachersClassTextChannelName : string
@@ -53,6 +65,14 @@ module Types =
         ClassCategoryName : string
         ClassTextChannelName : string
         ClassVoiceChannelName : string
+        ConfigActualValue : s -> s -> string
+        ConfigActualValueNull : s -> string
+        ConfigInvalidName : string
+        ConfigInvalidNewValue : s -> string
+        ConfigMissingName : s -> string
+        ConfigSuccess : string
+        ConfigUnsetNull : string
+        ConfigUnsetSuccess : string
         ConfirmationCancellation : string
         ConfirmationNoResponse : string
         ConfirmationTimeoutMessage : string
@@ -66,14 +86,18 @@ module Types =
         InitConfirmationMsg : s -> s -> s -> s -> string
         InitSuccess : string
         JoinGuildMessage : s -> s -> s -> string
-        LangMissingArg : s -> s -> string
-        LangNotFound : s -> string
+        LangMissingArg : s -> string
+        LangNotFound : string
         LangSuccess : s -> string
         PingSuccess : i -> string
-        PrefixMissingArg : s -> i -> string
+        PrefixMissingArg : s -> string
         PrefixNoChange : string
         PrefixSuccess : s -> string
         PrefixTooLong : i -> string
+        QuestionNotInitialized : s -> string
+        QuestionReaction : string
+        QuestionReceived : s -> s -> string
+        QuestionSended : string
         ResponseToDm : s -> s -> string
         StudentsRoleName : string
         TeachersClassTextChannelName : string
@@ -89,6 +113,14 @@ module Types =
                 ClassCategoryName = sprintf (Printf.StringFormat<_> l.ClassCategoryName)
                 ClassTextChannelName = sprintf (Printf.StringFormat<_> l.ClassTextChannelName)
                 ClassVoiceChannelName = sprintf (Printf.StringFormat<_> l.ClassVoiceChannelName)
+                ConfigActualValue = sprintf (Printf.StringFormat<_> l.ConfigActualValue)
+                ConfigActualValueNull = sprintf (Printf.StringFormat<_> l.ConfigActualValueNull)
+                ConfigInvalidName = sprintf (Printf.StringFormat<_> l.ConfigInvalidName)
+                ConfigInvalidNewValue = sprintf (Printf.StringFormat<_> l.ConfigInvalidNewValue)
+                ConfigMissingName = sprintf (Printf.StringFormat<_> l.ConfigMissingName)
+                ConfigSuccess = sprintf (Printf.StringFormat<_> l.ConfigSuccess)
+                ConfigUnsetNull = sprintf (Printf.StringFormat<_> l.ConfigUnsetNull)
+                ConfigUnsetSuccess = sprintf (Printf.StringFormat<_> l.ConfigUnsetSuccess)
                 ConfirmationCancellation = sprintf (Printf.StringFormat<_> l.ConfirmationCancellation)
                 ConfirmationNoResponse = sprintf (Printf.StringFormat<_> l.ConfirmationNoResponse)
                 ConfirmationTimeoutMessage = sprintf (Printf.StringFormat<_> l.ConfirmationTimeoutMessage)
@@ -110,6 +142,10 @@ module Types =
                 PrefixNoChange = sprintf (Printf.StringFormat<_> l.PrefixNoChange)
                 PrefixSuccess = sprintf (Printf.StringFormat<_> l.PrefixSuccess)
                 PrefixTooLong = sprintf (Printf.StringFormat<_> l.PrefixTooLong)
+                QuestionNotInitialized = sprintf (Printf.StringFormat<_> l.QuestionNotInitialized)
+                QuestionReaction = sprintf (Printf.StringFormat<_> l.QuestionReaction)
+                QuestionReceived = sprintf (Printf.StringFormat<_> l.QuestionReceived)
+                QuestionSended = sprintf (Printf.StringFormat<_> l.QuestionSended)
                 ResponseToDm = sprintf (Printf.StringFormat<_> l.ResponseToDm)
                 StudentsRoleName = sprintf (Printf.StringFormat<_> l.StudentsRoleName)
                 TeachersClassTextChannelName = sprintf (Printf.StringFormat<_> l.TeachersClassTextChannelName)
