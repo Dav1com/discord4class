@@ -1,11 +1,12 @@
 namespace Discord4Class.Helpers
 
+open DSharpPlus.EventArgs
+
 module Permission =
 
-    type Permission =
-        | NoPerm = 0x0
-        | Student = 0x1
-        | Delegate = 0x2
-        | Teacher = 0x4
-        | Admin = 0x8
-        | GuildOwner = 0x8
+    let checkPermissions (e : MessageCreateEventArgs) requiredPerms =
+        let memb =
+            e.Guild.GetMemberAsync e.Author.Id
+            |> Async.AwaitTask |> Async.RunSynchronously
+        let permissions = e.Channel.PermissionsFor memb
+        (permissions &&& requiredPerms = requiredPerms || memb = e.Guild.Owner)
