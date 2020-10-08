@@ -19,8 +19,8 @@ module Prefix =
                     config.Guild.Lang.PrefixNoChange
                     |> fun s -> e.Channel.SendMessageAsync(s)
                     |> Async.AwaitTask |> Async.Ignore
-                | s when s.ToLower().Contains "prefix" ->
-                    config.Guild.Lang.PrefixMissingArg config.Guild.CommandPrefix PrefixMaxSize
+                | s when s = "" ->
+                    config.Guild.Lang.PrefixMissingArg config.Guild.CommandPrefix
                     |> fun s -> e.Channel.SendMessageAsync(s)
                     |> Async.AwaitTask |> Async.Ignore
                 | s when s.Length > PrefixMaxSize ->
@@ -28,31 +28,14 @@ module Prefix =
                     |> fun s -> e.Channel.SendMessageAsync(s)
                     |> Async.AwaitTask |> Async.Ignore
                 | s ->
-                    if config.Guild.IsConfigOnDb then
-                        let filter = GC.Filter.And [
-                            GC.Filter.Eq((fun g -> g._id), e.Guild.Id)
-                        ]
-                        let update = GC.Update.Set((fun g -> g.CommandPrefix), s)
-                        [
-                            GC.UpdateOne config.App.DbDatabase filter update
-                            |> Async.Ignore
-                        ]
-                    else
-                        [
-                            GC.Insert config.App.DbDatabase {
-                                _id = e.Guild.Id
-                                CommandPrefix = newPrefix
-                                Language = config.Bot.DefaultLang
-                                Channels = None
-                            }
-                        ]
-                    |> List.append [
-                        config.Guild.Lang.PrefixSuccess newPrefix
-                        |> fun s -> e.Channel.SendMessageAsync(s)
-                        |> Async.AwaitTask
-                        |> Async.Ignore
-                    ]
-                    |> Async.Parallel
-                    |> Async.Ignore
+                    { GC.Base with
+                        _id = e.Guild.Id
+                        CommandPrefix = Some s }
+                    |> GC.InsertUpdate config.App.DbDatabase config.Guild.IsConfigOnDb
+                    |> Async.RunSynchronously
+
+                    config.Guild.Lang.PrefixSuccess newPrefix
+                    |> fun s -> e.Channel.SendMessageAsync(s)
+                    |> Async.AwaitTask |> Async.Ignore
             |> Async.RunSynchronously
         } |> Async.StartAsTask :> Task
