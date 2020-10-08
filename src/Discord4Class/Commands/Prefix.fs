@@ -14,7 +14,7 @@ module Prefix =
     [<Literal>]
     let PrefixMaxSize = 2
 
-    let exec (config : Config) newPrefix (e : MessageCreateEventArgs) = async {
+    let exec (config : Config) _ newPrefix (e : MessageCreateEventArgs) = async {
         if checkPermissions e RequiredPerms then
             newPrefix
             |> function

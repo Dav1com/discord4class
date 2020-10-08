@@ -8,7 +8,7 @@ open Discord4Class.Repositories.GuildConfiguration
 
 module GuildDeleted =
 
-    let exec config (e : GuildDeleteEventArgs) =
+    let exec config _ (e : GuildDeleteEventArgs) =
         async {
             [
                 GC.DeleteOne config.App.DbDatabase (GC.Filter.And [

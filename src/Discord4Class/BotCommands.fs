@@ -1,13 +1,13 @@
 namespace Discord4Class
 
-open System.Threading.Tasks
+open DSharpPlus
 open DSharpPlus.EventArgs
 open Discord4Class.Config.Types
 open Discord4Class.Commands
 
 module BotCommands =
 
-    let (BotCommands : Map<string, Config -> string -> MessageCreateEventArgs -> unit Async>) =
+    let (BotCommands : Map<string, Config -> DiscordClient -> string -> MessageCreateEventArgs -> unit Async>) =
         [
             ("ping", Ping.exec)
             ("lang", Lang.exec)

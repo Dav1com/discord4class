@@ -24,16 +24,16 @@ module Destroy =
         )
     )
 
-    let private afterConfirmation config (confirmMsg : DiscordMessage) (e : MessageCreateEventArgs) = Action<Task<MessageContext>>(fun r ->
+    let private afterConfirmation config (confirmMsg : DiscordMessage) (e : MessageCreateEventArgs) = Action<Task<InteractivityResult<DiscordMessage>>>(fun r ->
         let result = r.Result
-        if isNull result then
+        if result.TimedOut then
             confirmMsg.Content + "\n" + config.Guild.Lang.ConfirmationTimeoutMessage
             |> fun s -> confirmMsg.ModifyAsync(Optional s)
             |> Async.AwaitTask
             |> Async.RunSynchronously
             |> ignore
         else
-            if result.Message.Content.ToLower() = config.Guild.Lang.ConfirmationNoResponse.ToLower() then
+            if result.Result.Content.ToLower() = config.Guild.Lang.ConfirmationNoResponse.ToLower() then
                 config.Guild.Lang.ConfirmationCancellation
                 |> fun s -> e.Channel.SendMessageAsync(s)
                 |> Async.AwaitTask
@@ -54,7 +54,7 @@ module Destroy =
 
     )
 
-    let exec config _ (e : MessageCreateEventArgs) = async {
+    let exec config (client : DiscordClient) _ (e : MessageCreateEventArgs) = async {
         if checkPermissions e RequiredPerms then
             let! confirmMsg =
                 config.Guild.Lang.DestroyConfirmationMsg
@@ -63,7 +63,7 @@ module Destroy =
                 |> fun s -> e.Channel.SendMessageAsync(s)
                 |> Async.AwaitTask
 
-            let inter = (e.Client :?> DiscordClient).GetInteractivityModule()
+            let inter = client.GetInteractivity()
             inter.WaitForMessageAsync(
                     predicate config e.Message, Nullable (TimeSpan.FromSeconds ConfirmTimeout))
                 .ContinueWith( afterConfirmation config confirmMsg e)

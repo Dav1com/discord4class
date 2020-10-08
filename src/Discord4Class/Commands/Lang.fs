@@ -13,7 +13,7 @@ module Lang =
     [<Literal>]
     let RequiredPerms = Permissions.Administrator
 
-    let exec config (newLang : string) (e : MessageCreateEventArgs) = async {
+    let exec config _ (newLang : string) (e : MessageCreateEventArgs) = async {
         if checkPermissions e RequiredPerms then
             newLang.ToLower()
             |> config.Lang.TryFind

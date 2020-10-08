@@ -16,6 +16,18 @@ module Init =
     [<Literal>]
     let RequiredPerms = Permissions.Administrator
 
+    let TeacherPerms =
+        Permissions.CreateInstantInvite +
+        Permissions.AttachFiles +
+        Permissions.AddReactions +
+        Permissions.ManageMessages +
+        //Permissions.ManageNicknames +
+        Permissions.MentionEveryone +
+        Permissions.MoveMembers +
+        Permissions.MuteMembers +
+        Permissions.ReadMessageHistory +
+        Permissions.SendMessages
+
     let private messageCreated config (e : DiscordMessage) = Func<DiscordMessage, bool> (fun e2 ->
         e.ChannelId = e2.ChannelId && e2.Author.Id = e.Author.Id && (
             e2.Content.ToLower() = config.Guild.Lang.ConfirmationYesResponse.ToLower() ||
@@ -23,85 +35,80 @@ module Init =
         )
     )
 
-    let private afterConfirmation config (initMsg : DiscordMessage) (e : MessageCreateEventArgs) = Action<Task<MessageContext>>(fun r ->
+    let private afterConfirmation config (initMsg : DiscordMessage) (e : MessageCreateEventArgs) = Action<Task<InteractivityResult<DiscordMessage>>>(fun r ->
         let result = r.Result
-        if isNull result then
+        if result.TimedOut then
             initMsg.Content + "\n" + config.Guild.Lang.ConfirmationTimeoutMessage
             |> fun s -> initMsg.ModifyAsync(Optional s)
             |> Async.AwaitTask
             |> Async.RunSynchronously
             |> ignore
         else
-            if result.Message.Content.ToLower() = config.Guild.Lang.ConfirmationNoResponse.ToLower() then
+            if result.Result.Content.ToLower() = config.Guild.Lang.ConfirmationNoResponse.ToLower() then
                 config.Guild.Lang.ConfirmationCancellation
                 |> fun s -> e.Channel.SendMessageAsync(s)
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
                 |> ignore
             else
+
+                let teacherRole =
+                    e.Guild.CreateRoleAsync(
+                        config.Guild.Lang.TeachersRoleName,
+                        Nullable TeacherPerms,
+                        Nullable DiscordColor.Blue,
+                        Nullable true,
+                        Nullable true
+                    )
+                    |> Async.AwaitTask |> Async.RunSynchronously
+                e.Guild.GetMemberAsync e.Author.Id
+                |> Async.AwaitTask |> Async.RunSynchronously
+                |> fun m -> m.GrantRoleAsync teacherRole
+                |> Async.AwaitTask |> Async.RunSynchronously
+
                 // category container
                 let category =
                     e.Guild.CreateChannelAsync(config.Guild.Lang.ClassCategoryName, ChannelType.Category)
                     |> Async.AwaitTask
                     |> Async.RunSynchronously
-                [
+                let teachersText =
                     e.Guild.CreateChannelAsync(
                         config.Guild.Lang.TeachersClassTextChannelName,
-                        ChannelType.Text, category )
-                    |> Async.AwaitTask
-                    |> fun a -> async.Bind(a, fun c -> async {return c.Id})
+                        ChannelType.Text,
+                        category,
+                        overwrites=[
 
+                        ] )
+                    |> Async.AwaitTask |> Async.RunSynchronously
+                let classText =
                     e.Guild.CreateChannelAsync(
                         config.Guild.Lang.ClassTextChannelName,
                         ChannelType.Text, category )
-                    |> Async.AwaitTask
-                    |> fun a -> async.Bind(a, fun c -> async {return c.Id})
-
+                    |> Async.AwaitTask |> Async.RunSynchronously
+                let classVoice =
                     e.Guild.CreateChannelAsync(
                         config.Guild.Lang.ClassVoiceChannelName,
                         ChannelType.Voice, category )
-                    |> Async.AwaitTask
-                    |> fun a -> async.Bind(a, fun c -> async {return c.Id})
+                    |> Async.AwaitTask |> Async.RunSynchronously
 
-                    async {
-                        let! role =
-                            e.Guild.CreateRoleAsync(
-                                config.Guild.Lang.TeachersRoleName,
-                                Nullable Permissions.Administrator,
-                                Nullable DiscordColor.Blue,
-                                Nullable true,
-                                Nullable true
-                            )
-                            |> Async.AwaitTask
-                        e.Guild.GetMemberAsync e.Author.Id
-                        |> Async.AwaitTask |> Async.RunSynchronously
-                        |> fun m -> m.GrantRoleAsync role
-                        |> Async.AwaitTask |> Async.RunSynchronously
-                        return role.Id
-                    }
-                ]
-                |> Async.Parallel
+
+                if config.Guild.IsConfigOnDb then
+                    GC.Insert config.App.DbDatabase
+                        { GC.Base with
+                            _id = e.Guild.Id
+                            TeachersText = Some teachersText.Id
+                            ClassVoice = Some classVoice.Id
+                            TeacherRole = Some teacherRole.Id }
+                else
+                    let filter = GC.Filter.And [ GC.Filter.Eq((fun g -> g._id), e.Guild.Id) ]
+                    let update = GC.Update.Combine [
+                        GC.Update.Set((fun g -> g.TeachersText), Some teachersText.Id)
+                        GC.Update.Set((fun g -> g.ClassVoice), Some classVoice.Id)
+                        GC.Update.Set((fun g -> g.TeacherRole), Some teacherRole.Id)
+                    ]
+                    GC.UpdateOne config.App.DbDatabase filter update
+                    |> Async.Ignore
                 |> Async.RunSynchronously
-                |> fun [|teachersText; _; classVoice; teacherRole|] ->
-                    match config.Guild.IsConfigOnDb with
-                    | false ->
-                        GC.Insert config.App.DbDatabase
-                            { GC.Base with
-                                _id = e.Guild.Id
-                                TeachersText = Some teachersText
-                                ClassVoice = Some classVoice
-                                TeacherRole = Some teacherRole }
-                        |> Async.RunSynchronously
-                    | true ->
-                        let filter = GC.Filter.And [ GC.Filter.Eq((fun g -> g._id), e.Guild.Id) ]
-                        let update = GC.Update.Combine [
-                            GC.Update.Set((fun g -> g.TeachersText), Some teachersText)
-                            GC.Update.Set((fun g -> g.ClassVoice), Some classVoice)
-                        ]
-                        GC.UpdateOne config.App.DbDatabase filter update
-                        |> Async.RunSynchronously
-                        |> ignore
-                |> ignore
 
                 config.Guild.Lang.InitSuccess
                 |> fun s -> e.Channel.SendMessageAsync(s)
@@ -110,7 +117,7 @@ module Init =
                 |> ignore
     )
 
-    let exec config mode (e : MessageCreateEventArgs) = async {
+    let exec config (client : DiscordClient) mode (e : MessageCreateEventArgs) = async {
         if checkPermissions e RequiredPerms then
             if
                 config.Guild.TeachersText.IsSome ||
@@ -129,7 +136,7 @@ module Init =
                     |> Async.AwaitTask
                     |> Async.RunSynchronously
 
-                let inter = (e.Client :?> DiscordClient).GetInteractivityModule()
+                let inter = client.GetInteractivity()
 
                 // This took me a long time to figure it out,
                 // using Taks.Delay, Async.Sleep, Async.RunSynchronously, even running in parallel

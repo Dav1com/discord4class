@@ -7,8 +7,8 @@ open Discord4Class.Config.Types
 
 module Ping =
 
-    let exec config _ (e : MessageCreateEventArgs) = async {
-        (e.Client :?> DiscordClient).Ping
+    let exec config (client : DiscordClient) _ (e : MessageCreateEventArgs) = async {
+        client.Ping
         |> config.Guild.Lang.PingSuccess
         |> (fun x -> e.Channel.SendMessageAsync(x) )
         |> Async.AwaitTask |> Async.RunSynchronously |> ignore

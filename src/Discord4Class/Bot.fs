@@ -2,6 +2,8 @@ namespace Discord4Class
 
 open System
 open System.Threading.Tasks
+open Microsoft.Extensions.Logging
+open Emzi0767.Utilities
 open DSharpPlus
 open DSharpPlus.EventArgs
 open DSharpPlus.Interactivity
@@ -11,18 +13,15 @@ open Discord4Class.EventManagers
 
 module Bot =
 
-    let Log s (e : DebugLogMessageEventArgs) =
-        printfn "[%s] [%s] [%s] %s" (e.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")) (e.Level.ToString()) e.Application e.Message
-
     let getDiscordConfig config =
         let dConf = DiscordConfiguration()
         dConf.set_AutoReconnect true
 
         match config.Preferences.LogLevel with
         | InnerTypes.Off -> LogLevel.Critical
-        | InnerTypes.Normal -> LogLevel.Info
+        | InnerTypes.Normal -> LogLevel.Information
         | InnerTypes.Debug -> LogLevel.Debug
-        |> dConf.set_LogLevel
+        |> dConf.set_MinimumLogLevel
 
         dConf.set_Token config.Bot.BotToken
         dConf.set_TokenType TokenType.Bot
@@ -36,20 +35,18 @@ module Bot =
     let runBot config = async {
 
         let discord = new DiscordClient( getDiscordConfig config )
-        discord.DebugLogger.LogMessageReceived.AddHandler(EventHandler<DebugLogMessageEventArgs>(Log))
 
         let iconf = InteractivityConfiguration()
-        iconf.Timeout <- TimeSpan.FromSeconds 10.0
-        iconf.PaginationBehaviour <- TimeoutBehaviour.Default
-        iconf.PaginationTimeout <- TimeSpan.FromMinutes 5.0
+        iconf.set_Timeout <| TimeSpan.FromSeconds 10.0
+        //iconf.PaginationBehaviour <- PaginationBehaviour.Ignore
 
         let interactivity = discord.UseInteractivity(iconf)
 
         // Commands
-        AsyncEventHandler<MessageCreateEventArgs>(MessageCreated.exec config)
+        AsyncEventHandler<DiscordClient, MessageCreateEventArgs>(MessageCreated.exec config)
         |> discord.add_MessageCreated
         // Clean database
-        AsyncEventHandler<GuildDeleteEventArgs>(GuildDeleted.exec config)
+        AsyncEventHandler<DiscordClient, GuildDeleteEventArgs>(GuildDeleted.exec config)
         |> discord.add_GuildDeleted
         //TODO: discord.add_GuildRoleCreated //asks for quick actions
         //TODO: discord.add_ChannelDeleted //check channels integrity and updates

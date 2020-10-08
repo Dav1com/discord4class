@@ -63,9 +63,13 @@ module Config =
                 UnsetSuccess
             | None -> UnsetNull
         | chs ->
-            e.Guild.Channels
-            |> Array.ofSeq
-            |> Array.tryFind (fun ch -> ch.Name = chs.[1] && ch.Type = ChannelType.Voice)
+            e.Guild.Channels :> seq<_>
+            |> Seq.map (|KeyValue|)
+            |> Map.ofSeq
+            |> Map.tryPick (fun id ch ->
+                if ch.Name = chs.[1] && ch.Type = ChannelType.Voice then Some ch
+                else None
+            )
             |> function
                 | Some ch ->
                     { GC.Base with
@@ -108,7 +112,7 @@ module Config =
             ("teacher-role", updateTeacherRole)
         |] |> Map.ofArray
 
-    let exec config args (e : MessageCreateEventArgs) = async {
+    let exec config _ args (e : MessageCreateEventArgs) = async {
         if checkPermissions e RequiredPerms then
             match configName args with
             | Some s ->
