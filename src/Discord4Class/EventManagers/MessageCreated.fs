@@ -7,6 +7,7 @@ open Discord4Class.Config.Types
 open Discord4Class.Config.Loader
 open Discord4Class.Commands.Welcome
 open Discord4Class.Commands.Exception
+open Discord4Class.Commands.DmResponse
 open Discord4Class.BotCommands
 
 module MessageCreated =
@@ -69,7 +70,7 @@ module MessageCreated =
         async {
             try
                 if e.Channel.IsPrivate then
-                    ()
+                    sendDmResponse config e
                 elif not e.Author.IsCurrent then
                     let guildConf = loadGuildConfiguration config config.App.DbDatabase e.Guild.Id
 
@@ -82,13 +83,13 @@ module MessageCreated =
                             |> function
                                 | Some f -> f guildConf cmd.Args e
                                 | None -> cmdNotFound cmd.Name guildConf e
-                            |> Async.RunSynchronously
                         | None ->
-                            ()
+                            async.Zero()
                 elif e.Message.Content.Length = 0 then
-                    sendWelcome config e |> Async.RunSynchronously
+                    sendWelcome config e
                 else
-                    ()
+                    async.Zero()
+                |> Async.RunSynchronously
             with
                 | ex -> cmdErrorUnknown config e ex |> Async.RunSynchronously
         } |> Async.StartAsTask :> Task
