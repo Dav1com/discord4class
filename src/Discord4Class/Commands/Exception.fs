@@ -11,9 +11,6 @@ open Discord4Class.Config.Types
 module Exception =
 
     [<Literal>]
-    let Perms = Permission.NoPerm
-
-    [<Literal>]
     let private EmbedColor = 0xFF0000
 
     let cmdNotFound cmd config (msg : MessageCreateEventArgs) =
