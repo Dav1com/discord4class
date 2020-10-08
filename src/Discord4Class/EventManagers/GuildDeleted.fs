@@ -18,4 +18,4 @@ module GuildDeleted =
             |> Async.Parallel
             |> Async.RunSynchronously
             |> ignore
-        } |> Async.StartAsTask :> Tasl
+        } |> Async.StartAsTask :> Task
