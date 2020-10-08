@@ -80,8 +80,8 @@ module Config =
 
     let private updateTeacherRole config (args : string) (e : MessageCreateEventArgs) = async { return
         match e.Message.MentionedRoles |> Array.ofSeq with
-        | _ when args.ToLower().Trim() = "unset" ->
-            match config.Guild.TeachersText with
+        | _ when args.Trim().EndsWith "unset" ->
+            match config.Guild.TeacherRole with
             | Some _ ->
                 let filter = GC.Filter.And [
                     GC.Filter.Eq((fun gc -> gc._id), e.Guild.Id)
