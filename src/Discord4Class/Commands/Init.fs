@@ -92,7 +92,7 @@ module Init =
                 |> ignore
     )
 
-    let exec config (e : MessageCreateEventArgs) =
+    let exec config mode (e : MessageCreateEventArgs) =
         async {
             if config.Guild.Channels.IsSome then
                 config.Guild.Lang.InitAlreadyInited config.Guild.CommandPrefix

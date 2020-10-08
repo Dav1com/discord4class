@@ -7,7 +7,7 @@ open Discord4Class.Commands
 
 module BotCommands =
 
-    let (BotCommands : Map<string, Config -> MessageCreateEventArgs -> Task>) =
+    let (BotCommands : Map<string, Config -> string -> MessageCreateEventArgs -> Task>) =
         [
             ("ping", Ping.exec)
             ("lang", Lang.exec)
@@ -15,5 +15,6 @@ module BotCommands =
             ("prefix", Prefix.exec)
             ("init", Init.exec)
             ("destroy", Destroy.exec)
+            ("config", Config.exec)
         ]
         |> Map.ofSeq

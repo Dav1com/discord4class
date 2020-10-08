@@ -7,7 +7,7 @@ open Discord4Class.Config.Types
 
 module Ping =
 
-    let exec config (e : MessageCreateEventArgs) =
+    let exec config _ (e : MessageCreateEventArgs) =
         async {
             return!
                 (e.Client :?> DiscordClient).Ping

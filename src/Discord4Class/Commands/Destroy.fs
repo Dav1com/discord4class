@@ -74,7 +74,7 @@ module Destroy =
                 |> ignore
     )
 
-    let exec config (e : MessageCreateEventArgs) =
+    let exec config _ (e : MessageCreateEventArgs) =
         async {
             let! confirmMsg =
                 config.Guild.Lang.DestroyConfirmationMsg

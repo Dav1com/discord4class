@@ -10,11 +10,8 @@ module Prefix =
     [<Literal>]
     let PrefixMaxSize = 2
 
-    let exec (config : Config) (e : MessageCreateEventArgs) =
+    let exec (config : Config) newPrefix (e : MessageCreateEventArgs) =
         async {
-            let newPrefix =
-                (e.Message.Content.Split " "
-                |> Array.last)
 
             newPrefix
             |> function

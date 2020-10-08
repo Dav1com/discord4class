@@ -8,13 +8,9 @@ open Discord4Class.Config.Types
 
 module Lang =
 
-    let exec config (e : MessageCreateEventArgs) =
+    let exec config (newLang : string) (e : MessageCreateEventArgs) =
         async {
-            let newLang =
-                (e.Message.Content.Split " "
-                |> Array.last)
-                    .ToLower()
-            newLang
+            newLang.ToLower()
             |> config.Lang.TryFind
             |> function
                 | Some l ->

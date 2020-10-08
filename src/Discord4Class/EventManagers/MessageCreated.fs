@@ -16,6 +16,10 @@ module MessageCreated =
         | ByPrefix
         | NoCmd
 
+    type private Command =
+      { Name : string
+        Args : string }
+
     let private detectCallType config (e : MessageCreateEventArgs) =
         if e.Message.Content.StartsWith config.Guild.CommandPrefix then
             ByPrefix
@@ -26,16 +30,38 @@ module MessageCreated =
 
     let private getCommand config (e : MessageCreateEventArgs) = function
         | ByPrefix ->
-            ((e.Message.Content.Substring config.Guild.CommandPrefix.Length)
-                .Trim().Split " "
-            |> Array.head)
-                .ToLower()
+            (e.Message.Content.Substring config.Guild.CommandPrefix.Length)
+                .Trim()
+            |> fun s ->
+                s.IndexOf " "
+                |> function
+                    | -1 ->
+                        {
+                            Name = s
+                            Args = ""
+                        }
+                    | i ->
+                        {
+                            Name = s.[..i-1].ToLower()
+                            Args = s.[i+1..]
+                        }
             |> Some
         | ByMention ->
-            ((e.Message.Content.Substring (e.Client.CurrentUser.Mention.Length+1))
-                .Trim().Split " "
-            |> Array.head)
-                .ToLower()
+            (e.Message.Content.Substring (e.Client.CurrentUser.Mention.Length+1))
+                .Trim()
+            |> fun s ->
+                s.IndexOf " "
+                |> function
+                    | -1 ->
+                        {
+                            Name = s
+                            Args = ""
+                        }
+                    | i ->
+                        {
+                            Name = s.[..i-1].ToLower()
+                            Args = s.[i+1..]
+                        }
             |> Some
         | NoCmd -> None
 
@@ -50,11 +76,11 @@ module MessageCreated =
                 |> getCommand guildConf e
                 |> function
                     | Some cmd ->
-                        cmd
+                        cmd.Name
                         |> BotCommands.TryFind
                         |> function
-                            | Some f -> f guildConf e
-                            | None -> cmdNotFound cmd guildConf e
+                            | Some f -> f guildConf cmd.Args e
+                            | None -> cmdNotFound cmd.Name guildConf e
                     | None ->
                         Task.CompletedTask
             elif e.Message.Content.Length = 0 then
