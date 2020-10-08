@@ -41,25 +41,17 @@ module Destroy =
                 |> ignore
             else
                 [
-                    config.Guild.TeachersText
-                    config.Guild.ClassVoice
+                    GC.Filter.And [GC.Filter.Eq((fun gc -> gc._id), e.Guild.Id)]
+                    |> GC.DeleteOne config.App.DbDatabase
                 ]
-                |> List.map (function
-                    | Some c ->
-                        e.Guild.GetChannel c
-                        |> fun ch -> ch.DeleteAsync()
-                        |> Async.AwaitTask |> Async.Ignore
-                    | None -> async.Zero()
-                )
-                |> Async.Parallel
-                |> Async.RunSynchronously
-                |> ignore
+                |> Async.Parallel |> Async.RunSynchronously |> ignore
 
                 config.Guild.Lang.DestroySuccess
                 |> fun s -> e.Channel.SendMessageAsync(s)
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
                 |> ignore
+
     )
 
     let exec config _ (e : MessageCreateEventArgs) = async {
