@@ -36,6 +36,7 @@
     <PackageReference Include="DSharpPlus" Version="3.2.3" />
   </ItemGroup>
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="dotnet fsi &quot;$(ProjectDir)scripts/CheckLangSignatures.fsx&quot;" />
     <Exec Command="dotnet fsi &quot;$(ProjectDir)scripts/GenerateLangTypes.fsx&quot;" />
   </Target>
 </Project>
