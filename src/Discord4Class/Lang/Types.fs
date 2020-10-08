@@ -2,7 +2,7 @@ namespace Discord4Class.Lang
 
 open FSharp.Core
 open FSharp.Reflection
-open Discord4Class.Helpers.TypeShorcuts
+open Discord4Class.Helpers.TypeShortcuts
 
 // It would be nice to have a better way of doing this
 module Types =
