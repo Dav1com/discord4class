@@ -1,11 +1,7 @@
 namespace Discord4Class.Lang
 
-open System.Runtime
-open System.Reflection
 open FSharp.Core
 open FSharp.Reflection
-open FSharp.Quotations
-open FSharp.Quotations.Evaluator.QuotationEvaluationExtensions
 open Discord4Class.Helpers.TypeShorcuts
 
 // It would be nice to have a better way of doing this
