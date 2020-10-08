@@ -49,10 +49,9 @@ module Bot =
         AsyncEventHandler<MessageCreateEventArgs>(MessageCreated.exec config)
         |> discord.add_MessageCreated
         // Clean database
-        //AsyncEventHandler<GuildDeleteEventArgs>(GuildDeleted.exec config)
-        //|> discord.add_GuildDeleted
+        AsyncEventHandler<GuildDeleteEventArgs>(GuildDeleted.exec config)
+        |> discord.add_GuildDeleted
         //TODO: discord.add_GuildRoleCreated //asks for quick actions
-        //TODO: discord.add_GuildRoleDeleted //check roles integrity and updates
         //TODO: discord.add_ChannelDeleted //check channels integrity and updates
         //TODO: discord.add_VoiceStateUpdated //assistence service
         //TODO: discord.add_MessageReactionAdded // Teachers mark as solved questions
