@@ -1,6 +1,7 @@
 namespace Discord4Class.Repositories
 
 open MongoDB.Driver
+open Discord4Class.Helpers.Exceptions
 open Discord4Class.Config.InnerTypes
 
 module GuildConfiguration =
@@ -8,6 +9,7 @@ module GuildConfiguration =
     [<Literal>]
     let private CollectionName = "GuildConfiguration"
 
+    // when adding fields, remember to handle it at UpdateById
     type GuildConfiguration =
       { _id : uint64 //GuildId
         CommandPrefix : string option
@@ -58,10 +60,32 @@ module GuildConfiguration =
                 .UpdateOneAsync(filter, update)
             |> Async.AwaitTask
 
+        static member UpdateById (db : IMongoDatabase) (obj : GuildConfiguration) =
+            let filter = GC.Filter.And [ GC.Filter.Eq((fun gc -> gc._id), obj._id) ]
+            match obj with
+            | {CommandPrefix = Some s} ->
+                GC.Update.Set((fun gc -> gc.CommandPrefix), Some s)
+            | {Language = Some s} ->
+                GC.Update.Set((fun gc -> gc.Language), Some s)
+            | {TeachersText = Some i} ->
+                GC.Update.Set((fun gc -> gc.TeachersText), Some i)
+            | {ClassVoice = Some i} ->
+                GC.Update.Set((fun gc -> gc.ClassVoice), Some i)
+            | {TeacherRole = Some i} ->
+                GC.Update.Set((fun gc -> gc.TeacherRole), Some i)
+            | _ -> raise ExceptionInsertUpdateNothing
+            |> GC.UpdateOne db filter
+
         static member DeleteOne (db : IMongoDatabase) (filter : FilterDefinition<GuildConfiguration>) =
             db.GetCollection<GuildConfiguration>(CollectionName)
                 .DeleteOneAsync filter
             |> Async.AwaitTask
 
-    type GC = GuildConfiguration
+        static member InsertUpdate (db : IMongoDatabase) isUpdate (obj : GuildConfiguration) =
+            if isUpdate then
+                GC.UpdateById db obj |> Async.Ignore
+            else
+                GC.Insert db obj
+
+    and GC = GuildConfiguration
 
