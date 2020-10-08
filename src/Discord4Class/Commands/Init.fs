@@ -49,41 +49,55 @@ module Init =
                         config.Guild.Lang.TeachersClassTextChannelName,
                         ChannelType.Text, category )
                     |> Async.AwaitTask
+                    |> fun a -> async.Bind(a, fun c -> async {return c.Id})
 
                     e.Guild.CreateChannelAsync(
                         config.Guild.Lang.ClassTextChannelName,
                         ChannelType.Text, category )
                     |> Async.AwaitTask
+                    |> fun a -> async.Bind(a, fun c -> async {return c.Id})
 
                     e.Guild.CreateChannelAsync(
                         config.Guild.Lang.ClassVoiceChannelName,
                         ChannelType.Voice, category )
                     |> Async.AwaitTask
+                    |> fun a -> async.Bind(a, fun c -> async {return c.Id})
+
+                    async {
+                        let! role =
+                            e.Guild.CreateRoleAsync(
+                                config.Guild.Lang.TeachersRoleName,
+                                Nullable Permissions.Administrator,
+                                Nullable DiscordColor.Blue,
+                                Nullable true,
+                                Nullable true
+                            )
+                            |> Async.AwaitTask
+                        e.Guild.GetMemberAsync e.Author.Id
+                        |> Async.AwaitTask |> Async.RunSynchronously
+                        |> fun m -> m.GrantRoleAsync role
+                        |> Async.AwaitTask |> Async.RunSynchronously
+                        return role.Id
+                    }
                 ]
                 |> Async.Parallel
                 |> Async.RunSynchronously
-                |> Array.map (fun c -> c.Id)
-                |> fun [|teachersText; classText; classVoice|] ->
+                |> fun [|teachersText; _; classVoice; teacherRole|] ->
                     match config.Guild.IsConfigOnDb with
                     | false ->
-                        GC.Insert config.App.DbDatabase {
-                            _id = e.Guild.Id
-                            CommandPrefix = config.Bot.CommandPrefix
-                            Language = config.Bot.DefaultLang
-                            Channels = Some {
-                                TeachersText = teachersText
-                                ClassText = classText
-                                ClassVoice = classVoice
-                            }
-                        }
+                        GC.Insert config.App.DbDatabase
+                            { GC.Base with
+                                _id = e.Guild.Id
+                                TeachersText = Some teachersText
+                                ClassVoice = Some classVoice
+                                TeacherRole = Some teacherRole }
                         |> Async.RunSynchronously
                     | true ->
                         let filter = GC.Filter.And [ GC.Filter.Eq((fun g -> g._id), e.Guild.Id) ]
-                        let update = GC.Update.Set((fun g -> g.Channels), Some {
-                            TeachersText = teachersText
-                            ClassText = classText
-                            ClassVoice = classVoice
-                        })
+                        let update = GC.Update.Combine [
+                            GC.Update.Set((fun g -> g.TeachersText), Some teachersText)
+                            GC.Update.Set((fun g -> g.ClassVoice), Some classVoice)
+                        ]
                         GC.UpdateOne config.App.DbDatabase filter update
                         |> Async.RunSynchronously
                         |> ignore
