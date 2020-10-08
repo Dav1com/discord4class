@@ -4,7 +4,6 @@ open System.IO
 open System.Reflection
 open Microsoft.Extensions.Configuration
 open FsConfig
-open Discord4Class.Helpers.Option
 open Discord4Class.Db
 open Discord4Class.Repositories.GuildConfiguration
 open Discord4Class.Lang.Loader
@@ -36,7 +35,9 @@ module Loader =
                     Lang = fullLang.[defLang]
                     CommandPrefix = c.Bot.CommandPrefix
                     IsConfigOnDb = false
-                    Channels = None
+                    TeachersText = None
+                    ClassVoice = None
+                    TeacherRole = None
                 }
             }
         | Error err ->
@@ -68,12 +69,22 @@ module Loader =
             |> Async.RunSynchronously
         match gc with
         | Some g ->
+            let lang =
+                match g.Language with
+                | Some l -> c.Lang.[l]
+                | None -> c.Lang.[c.Bot.DefaultLang]
+            let prefix =
+                match g.CommandPrefix with
+                | Some p -> p
+                | None -> c.Bot.CommandPrefix
             { c with
                 Guild = {
-                    Lang = c.Lang.[g.Language]
-                    CommandPrefix = g.CommandPrefix
+                    Lang = lang
+                    CommandPrefix = prefix
                     IsConfigOnDb = true
-                    Channels = g.Channels
+                    TeachersText = g.TeachersText
+                    ClassVoice = g.ClassVoice
+                    TeacherRole = g.TeacherRole
                 }
             }
         | None ->
@@ -82,7 +93,8 @@ module Loader =
                     Lang = c.Lang.[c.Bot.DefaultLang]
                     CommandPrefix = c.Bot.CommandPrefix
                     IsConfigOnDb = false
-                    Channels = None
+                    TeachersText = None
+                    ClassVoice = None
+                    TeacherRole = None
                 }
             }
-

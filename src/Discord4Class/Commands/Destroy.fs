@@ -40,31 +40,16 @@ module Destroy =
                 |> Async.RunSynchronously
                 |> ignore
             else
-                if config.Guild.Channels.IsNone then []
-                else
-                    [
-                        config.Guild.Channels.Value.TeachersText
-                        config.Guild.Channels.Value.ClassText
-                        config.Guild.Channels.Value.ClassVoice
-                    ]
-                    |> List.map (fun id -> async {
-                        e.Guild.Channels
-                        |> Seq.tryFind (fun ch -> ch.Id = id)
-                        |> function
-                            | Some c ->
-                                c.DeleteAsync()
-                                |> Async.AwaitTask
-                                |> Async.RunSynchronously
-                            | None -> ()
-                    })
-                |> List.append (
-                    if config.Guild.IsConfigOnDb then
-                        [
-                            GC.DeleteOne config.App.DbDatabase (GC.Filter.And [
-                                GC.Filter.Eq((fun g -> g._id), e.Guild.Id)
-                            ]) |> Async.Ignore
-                        ]
-                    else []
+                [
+                    config.Guild.TeachersText
+                    config.Guild.ClassVoice
+                ]
+                |> List.map (function
+                    | Some c ->
+                        e.Guild.GetChannel c
+                        |> fun ch -> ch.DeleteAsync()
+                        |> Async.AwaitTask |> Async.Ignore
+                    | None -> async.Zero()
                 )
                 |> Async.Parallel
                 |> Async.RunSynchronously

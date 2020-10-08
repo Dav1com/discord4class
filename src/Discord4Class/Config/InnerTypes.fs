@@ -40,13 +40,10 @@ module InnerTypes =
         JoinGuildURL : string // TODO: Move to app.config
         DbDatabase : IMongoDatabase }
 
-    type ChannelsData =
-      { TeachersText : uint64
-        ClassText : uint64
-        ClassVoice : uint64 }
-
     type GuildConfig =
       { Lang : LangBuilders
         CommandPrefix : string
         IsConfigOnDb : bool
-        Channels : ChannelsData option }
+        TeachersText : uint64 option
+        ClassVoice : uint64 option
+        TeacherRole : uint64 option }
