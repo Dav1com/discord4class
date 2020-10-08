@@ -1,8 +1,8 @@
 namespace Discord4Class.Helpers
 
-// use only for LangTypes.fs (function signatures can become quite long)
-// the shortcuts are based on the Printf format style
-module TypeShorcuts =
+// use only for LangTypes.fs
+[<AutoOpen>]
+module TypeShortcuts =
     type b = bool
     type s = string
     type c = char
