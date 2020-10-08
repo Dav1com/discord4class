@@ -2,7 +2,7 @@ open System
 open System.IO
 open System.Text.RegularExpressions
 
-printfn "Generating Lang Types ..."
+printf "Generating Lang Types... "
 
 let BaseFilePath = __SOURCE_DIRECTORY__ + "/../res/lang/en-US.ini"
 let TargetFilePath = __SOURCE_DIRECTORY__ + "/../src/Discord4Class/Lang/Types.fs"
@@ -95,4 +95,4 @@ File.Delete TargetFilePath
 
 File.WriteAllLines(TargetFilePath, result)
 
-printfn "Types succesfully generated."
+printfn "OK"
