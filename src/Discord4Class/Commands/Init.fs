@@ -35,7 +35,8 @@ module Init =
         )
     )
 
-    let private afterConfirmation config (initMsg : DiscordMessage) (e : MessageCreateEventArgs) = Action<Task<InteractivityResult<DiscordMessage>>>(fun r ->
+    let private afterConfirmation config (client : DiscordClient) (initMsg : DiscordMessage) (e : MessageCreateEventArgs) = Action<Task<InteractivityResult<DiscordMessage>>>(fun r ->
+
         let result = r.Result
         if result.TimedOut then
             initMsg.Content + "\n" + config.Guild.Lang.ConfirmationTimeoutMessage
@@ -51,6 +52,10 @@ module Init =
                 |> Async.RunSynchronously
                 |> ignore
             else
+
+                let thisMember =
+                    e.Guild.GetMemberAsync client.CurrentUser.Id
+                    |> Async.AwaitTask |> Async.RunSynchronously
 
                 let teacherRole =
                     e.Guild.CreateRoleAsync(
@@ -76,30 +81,61 @@ module Init =
                         config.Guild.Lang.TeachersClassTextChannelName,
                         ChannelType.Text,
                         category,
-                        overwrites=[
-
-                        ] )
+                        overwrites = [
+                            DiscordOverwriteBuilder()
+                                .For(teacherRole)
+                                .Allow(Permissions.All)
+                            DiscordOverwriteBuilder()
+                                .For(e.Guild.EveryoneRole)
+                                .Deny(Permissions.All)
+                            DiscordOverwriteBuilder()
+                                .For(thisMember)
+                                .Allow(minPermsText)
+                        ]
+                    )
                     |> Async.AwaitTask |> Async.RunSynchronously
+
                 let classText =
                     e.Guild.CreateChannelAsync(
                         config.Guild.Lang.ClassTextChannelName,
-                        ChannelType.Text, category )
+                        ChannelType.Text,
+                        category,
+                        overwrites = [
+                            DiscordOverwriteBuilder()
+                                .For(e.Guild.EveryoneRole)
+                                .Allow(minPermsText)
+                                .Deny(Permissions.All - minPermsText)
+                            DiscordOverwriteBuilder()
+                                .For(teacherRole)
+                                .Allow(Permissions.All)
+                            DiscordOverwriteBuilder()
+                                .For(thisMember)
+                                .Allow(minPermsText)
+                        ]
+                    )
                     |> Async.AwaitTask |> Async.RunSynchronously
                 let classVoice =
                     e.Guild.CreateChannelAsync(
                         config.Guild.Lang.ClassVoiceChannelName,
-                        ChannelType.Voice, category )
+                        ChannelType.Voice,
+                        category,
+                        overwrites = [
+                            DiscordOverwriteBuilder()
+                                .For(e.Guild.EveryoneRole)
+                                .Allow(minPermsVoice)
+                                .Deny(Permissions.All - minPermsVoice)
+                            DiscordOverwriteBuilder()
+                                .For(teacherRole)
+                                .Allow(Permissions.All)
+                            DiscordOverwriteBuilder()
+                                .For(thisMember)
+                                .Allow(Permissions.AccessChannels)
+                        ] )
                     |> Async.AwaitTask |> Async.RunSynchronously
 
 
+                printfn "TEST: %A" config.Guild.IsConfigOnDb
                 if config.Guild.IsConfigOnDb then
-                    GC.Insert config.App.DbDatabase
-                        { GC.Base with
-                            _id = e.Guild.Id
-                            TeachersText = Some teachersText.Id
-                            ClassVoice = Some classVoice.Id
-                            TeacherRole = Some teacherRole.Id }
-                else
                     let filter = GC.Filter.And [ GC.Filter.Eq((fun g -> g._id), e.Guild.Id) ]
                     let update = GC.Update.Combine [
                         GC.Update.Set((fun g -> g.TeachersText), Some teachersText.Id)
@@ -108,6 +144,13 @@ module Init =
                     ]
                     GC.UpdateOne config.App.DbDatabase filter update
                     |> Async.Ignore
+                else
+                    GC.Insert config.App.DbDatabase
+                        { GC.Base with
+                            _id = e.Guild.Id
+                            TeachersText = Some teachersText.Id
+                            ClassVoice = Some classVoice.Id
+                            TeacherRole = Some teacherRole.Id }
                 |> Async.RunSynchronously
 
                 config.Guild.Lang.InitSuccess
@@ -121,7 +164,8 @@ module Init =
         if checkPermissions e RequiredPerms then
             if
                 config.Guild.TeachersText.IsSome ||
-                config.Guild.ClassVoice.IsSome
+                config.Guild.ClassVoice.IsSome ||
+                config.Guild.TeacherRole.IsSome
             then
                 config.Guild.Lang.InitAlreadyInited config.Guild.CommandPrefix
                 |> fun s -> e.Channel.SendMessageAsync(s)
@@ -143,7 +187,7 @@ module Init =
                 // blocked the threads of the main MessageCreated event. And (Task<_> ...).RunSynchronously()
                 // raises an exeption in DSharpPlus
                 inter.WaitForMessageAsync(
-                        messageCreated config e.Message, Nullable (TimeSpan.FromSeconds 30.0))
-                    .ContinueWith (afterConfirmation config initMsg e)
+                        messageCreated config e.Message, Nullable (TimeSpan.FromSeconds 5.0))
+                    .ContinueWith (afterConfirmation config client initMsg e)
                 |> ignore
     }
