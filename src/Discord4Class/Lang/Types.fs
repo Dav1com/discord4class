@@ -83,7 +83,7 @@ module Types =
         ErrorCmdUnknown : s -> s -> string
         ErrorEmbedAuthor : string
         InitAlreadyInited : s -> string
-        InitConfirmationMsg : s -> s -> s -> s -> string
+        InitConfirmationMsg : s -> s -> s -> string
         InitSuccess : string
         JoinGuildMessage : s -> s -> s -> string
         LangMissingArg : s -> string
