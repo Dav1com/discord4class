@@ -53,7 +53,7 @@ result <-
     List.append result [
         for KeyValue (k,v) in KeysValues do
             let s = String.replicate (searchResult.Column) " "
-            yield s + k + " : string"
+            yield s + k + ":string"
     ]
 
 let mutable searchResultEnd = findLineAndColumn TargetFile StringsEndTag
@@ -65,14 +65,17 @@ let signature str =
     (str
     |> (Regex "%[A-z]").Matches
     |> List.ofSeq
-    |> List.map (fun x -> x.Value.[1].ToString() + " -> " )
+    |> List.map (fun x -> x.Value.[1].ToString() + "->" )
     |> String.Concat)
 
 result <-
     List.append result [
-        for KeyValue (k,v) in KeysValues do
-            let s = String.replicate (searchResult.Column) " "
-            yield s + k + " : " + (signature v) + "string"
+        (String.replicate (searchResult.Column) " ") + (
+            [
+                for KeyValue (k,v) in KeysValues do
+                    yield k + ":" + (signature v) + "string;"
+            ] |> String.concat ""
+        )
     ]
 
 searchResultEnd <- findLineAndColumn TargetFile BuilderEndTag
@@ -82,9 +85,12 @@ result <- List.append result (TargetFile.GetSlice(Some searchResultEnd.Line, Som
 
 result <-
     List.append result [
-        for KeyValue (k,v) in KeysValues do
-            let s = String.replicate (searchResult.Column) " "
-            yield s + k + " = sprintf (Printf.StringFormat<_> l." + k + ")"
+        (String.replicate (searchResult.Column) " ") + (
+            [
+                for KeyValue (k,v) in KeysValues do
+                    yield k + "=sprintf(Printf.StringFormat<_>l." + k + ");"
+            ] |> String.concat ""
+        )
     ]
 
 searchResultEnd <- findLineAndColumn TargetFile ConversionEndTag
