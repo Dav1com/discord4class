@@ -12,6 +12,13 @@
     <Compile Include="src/Discord4Class/Repositories/*.fs" />
     <Compile Include="src/Discord4Class/Config/Types.fs" />
     <Compile Include="src/Discord4Class/Config/Loader.fs" />
+    <Compile Include="src/Discord4Class/Commands/TeamsInternals/Predicates.fs" />
+    <Compile Include="src/Discord4Class/Commands/TeamsInternals/Results.fs" />
+    <Compile Include="src/Discord4Class/Commands/TeamsInternals/Students.fs" />
+    <Compile Include="src/Discord4Class/Commands/TeamsInternals/ExistingTeams.fs" />
+    <Compile Include="src/Discord4Class/Commands/TeamsInternals/CreateTeams.fs" />
+    <Compile Include="src/Discord4Class/Commands/TeamsInternals/Move.fs" />
+    <Compile Include="src/Discord4Class/Commands/TeamsInternals/Delete.fs" />
     <Compile Include="src/Discord4Class/Commands/*.fs" />
     <Compile Include="src/Discord4Class/BotCommands.fs" />
     <Compile Include="src/Discord4Class/EventManagers/*.fs" />
@@ -24,7 +31,6 @@
     <None Include="res/lang/*.ini" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
-    <!-- I needed DSharpPlus.Entities.DiscordOverwriteBuilder, I didn't found other way -->
     <PackageReference Include="DSharpPlus" Version="4.0.0-nightly-00738" />
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00738" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00738" />
