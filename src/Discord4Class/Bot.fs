@@ -37,10 +37,9 @@ module Bot =
         let discord = new DiscordClient( getDiscordConfig config )
 
         let iconf = InteractivityConfiguration()
-        iconf.set_Timeout <| TimeSpan.FromSeconds 10.0
-        //iconf.PaginationBehaviour <- PaginationBehaviour.Ignore
+        iconf.set_Timeout <| TimeSpan.FromSeconds 30.0
 
-        let interactivity = discord.UseInteractivity(iconf)
+        discord.UseInteractivity(iconf) |> ignore
 
         // Commands
         AsyncEventHandler<DiscordClient, MessageCreateEventArgs>(MessageCreated.exec config)
