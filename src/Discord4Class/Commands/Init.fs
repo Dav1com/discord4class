@@ -21,7 +21,7 @@ module Init =
         Permissions.AttachFiles +
         Permissions.AddReactions +
         Permissions.ManageMessages +
-        //Permissions.ManageNicknames +
+        Permissions.ManageNicknames +
         Permissions.MentionEveryone +
         Permissions.MoveMembers +
         Permissions.MuteMembers +
@@ -53,9 +53,7 @@ module Init =
                 |> ignore
             else
 
-                let thisMember =
-                    e.Guild.GetMemberAsync client.CurrentUser.Id
-                    |> Async.AwaitTask |> Async.RunSynchronously
+                let thisMember = e.Guild.CurrentMember
 
                 let teacherRole =
                     e.Guild.CreateRoleAsync(
@@ -134,7 +132,6 @@ module Init =
                     |> Async.AwaitTask |> Async.RunSynchronously
 
 
-                printfn "TEST: %A" config.Guild.IsConfigOnDb
                 if config.Guild.IsConfigOnDb then
                     let filter = GC.Filter.And [ GC.Filter.Eq((fun g -> g._id), e.Guild.Id) ]
                     let update = GC.Update.Combine [
@@ -183,11 +180,11 @@ module Init =
                 let inter = client.GetInteractivity()
 
                 // This took me a long time to figure it out,
-                // using Taks.Delay, Async.Sleep, Async.RunSynchronously, even running in parallel
+                // using Task.Delay, Async.Sleep, Async.RunSynchronously, even running in parallel
                 // blocked the threads of the main MessageCreated event. And (Task<_> ...).RunSynchronously()
                 // raises an exeption in DSharpPlus
                 inter.WaitForMessageAsync(
-                        messageCreated config e.Message, Nullable (TimeSpan.FromSeconds 5.0))
+                        messageCreated config e.Message, Nullable (TimeSpan.FromSeconds 10.0))
                     .ContinueWith (afterConfirmation config client initMsg e)
                 |> ignore
     }
