@@ -24,11 +24,15 @@ module Types =
         ConfirmationNoResponse : string
         ConfirmationTimeoutMessage : string
         ConfirmationYesResponse : string
+        DeletedChannel : string
+        DeletedRole : string
         DestroyConfirmationMsg : string
         DestroySuccess : string
         ErrorCmdNotFound : string
         ErrorCmdUnknown : string
         ErrorEmbedAuthor : string
+        ErrorTextChannelDeleted : string
+        ErrorTextChannelNull : string
         InitAlreadyInited : string
         InitConfirmationMsg : string
         InitSuccess : string
@@ -41,7 +45,7 @@ module Types =
         PrefixNoChange : string
         PrefixSuccess : string
         PrefixTooLong : string
-        QuestionNotInitialized : string
+        QuestionNotSended : string
         QuestionReaction : string
         QuestionReceived : string
         QuestionSended : string
@@ -51,6 +55,18 @@ module Types =
         TeachersRoleName : string
         TeachersRoomCategoryName : string
         TeachersRoomTextChannelName : string
+        Team : string
+        TeamsAlreadyCreated : string
+        TeamsDestroyed : string
+        TeamsMissingArgument : string
+        TeamsNonNumericArgument : string
+        TeamsNumberIsRight : string
+        TeamsNumberTooLarge : string
+        TeamsNumberZero : string
+        TeamsSizeTooLarge : string
+        TeamsSizeZero : string
+        TeamsSuccess : string
+        TeamsTemplate : string
         //</StringsDefinition>
         }
 
@@ -77,11 +93,15 @@ module Types =
         ConfirmationNoResponse : string
         ConfirmationTimeoutMessage : string
         ConfirmationYesResponse : string
+        DeletedChannel : string
+        DeletedRole : string
         DestroyConfirmationMsg : s -> s -> string
         DestroySuccess : string
         ErrorCmdNotFound : s -> string
         ErrorCmdUnknown : s -> s -> string
         ErrorEmbedAuthor : string
+        ErrorTextChannelDeleted : s -> s -> s -> string
+        ErrorTextChannelNull : s -> s -> s -> string
         InitAlreadyInited : s -> string
         InitConfirmationMsg : s -> s -> s -> string
         InitSuccess : string
@@ -94,7 +114,7 @@ module Types =
         PrefixNoChange : string
         PrefixSuccess : s -> string
         PrefixTooLong : i -> string
-        QuestionNotInitialized : s -> string
+        QuestionNotSended : string
         QuestionReaction : string
         QuestionReceived : s -> s -> string
         QuestionSended : string
@@ -104,6 +124,18 @@ module Types =
         TeachersRoleName : string
         TeachersRoomCategoryName : string
         TeachersRoomTextChannelName : string
+        Team : string
+        TeamsAlreadyCreated : s -> string
+        TeamsDestroyed : string
+        TeamsMissingArgument : s -> string
+        TeamsNonNumericArgument : s -> string
+        TeamsNumberIsRight : string
+        TeamsNumberTooLarge : string
+        TeamsNumberZero : string
+        TeamsSizeTooLarge : string
+        TeamsSizeZero : string
+        TeamsSuccess : string
+        TeamsTemplate : i -> string
         //</BuilderDefinition>
         }
 
@@ -125,11 +157,15 @@ module Types =
                 ConfirmationNoResponse = sprintf (Printf.StringFormat<_> l.ConfirmationNoResponse)
                 ConfirmationTimeoutMessage = sprintf (Printf.StringFormat<_> l.ConfirmationTimeoutMessage)
                 ConfirmationYesResponse = sprintf (Printf.StringFormat<_> l.ConfirmationYesResponse)
+                DeletedChannel = sprintf (Printf.StringFormat<_> l.DeletedChannel)
+                DeletedRole = sprintf (Printf.StringFormat<_> l.DeletedRole)
                 DestroyConfirmationMsg = sprintf (Printf.StringFormat<_> l.DestroyConfirmationMsg)
                 DestroySuccess = sprintf (Printf.StringFormat<_> l.DestroySuccess)
                 ErrorCmdNotFound = sprintf (Printf.StringFormat<_> l.ErrorCmdNotFound)
                 ErrorCmdUnknown = sprintf (Printf.StringFormat<_> l.ErrorCmdUnknown)
                 ErrorEmbedAuthor = sprintf (Printf.StringFormat<_> l.ErrorEmbedAuthor)
+                ErrorTextChannelDeleted = sprintf (Printf.StringFormat<_> l.ErrorTextChannelDeleted)
+                ErrorTextChannelNull = sprintf (Printf.StringFormat<_> l.ErrorTextChannelNull)
                 InitAlreadyInited = sprintf (Printf.StringFormat<_> l.InitAlreadyInited)
                 InitConfirmationMsg = sprintf (Printf.StringFormat<_> l.InitConfirmationMsg)
                 InitSuccess = sprintf (Printf.StringFormat<_> l.InitSuccess)
@@ -142,7 +178,7 @@ module Types =
                 PrefixNoChange = sprintf (Printf.StringFormat<_> l.PrefixNoChange)
                 PrefixSuccess = sprintf (Printf.StringFormat<_> l.PrefixSuccess)
                 PrefixTooLong = sprintf (Printf.StringFormat<_> l.PrefixTooLong)
-                QuestionNotInitialized = sprintf (Printf.StringFormat<_> l.QuestionNotInitialized)
+                QuestionNotSended = sprintf (Printf.StringFormat<_> l.QuestionNotSended)
                 QuestionReaction = sprintf (Printf.StringFormat<_> l.QuestionReaction)
                 QuestionReceived = sprintf (Printf.StringFormat<_> l.QuestionReceived)
                 QuestionSended = sprintf (Printf.StringFormat<_> l.QuestionSended)
@@ -152,5 +188,17 @@ module Types =
                 TeachersRoleName = sprintf (Printf.StringFormat<_> l.TeachersRoleName)
                 TeachersRoomCategoryName = sprintf (Printf.StringFormat<_> l.TeachersRoomCategoryName)
                 TeachersRoomTextChannelName = sprintf (Printf.StringFormat<_> l.TeachersRoomTextChannelName)
+                Team = sprintf (Printf.StringFormat<_> l.Team)
+                TeamsAlreadyCreated = sprintf (Printf.StringFormat<_> l.TeamsAlreadyCreated)
+                TeamsDestroyed = sprintf (Printf.StringFormat<_> l.TeamsDestroyed)
+                TeamsMissingArgument = sprintf (Printf.StringFormat<_> l.TeamsMissingArgument)
+                TeamsNonNumericArgument = sprintf (Printf.StringFormat<_> l.TeamsNonNumericArgument)
+                TeamsNumberIsRight = sprintf (Printf.StringFormat<_> l.TeamsNumberIsRight)
+                TeamsNumberTooLarge = sprintf (Printf.StringFormat<_> l.TeamsNumberTooLarge)
+                TeamsNumberZero = sprintf (Printf.StringFormat<_> l.TeamsNumberZero)
+                TeamsSizeTooLarge = sprintf (Printf.StringFormat<_> l.TeamsSizeTooLarge)
+                TeamsSizeZero = sprintf (Printf.StringFormat<_> l.TeamsSizeZero)
+                TeamsSuccess = sprintf (Printf.StringFormat<_> l.TeamsSuccess)
+                TeamsTemplate = sprintf (Printf.StringFormat<_> l.TeamsTemplate)
                 //</BuilderConversion>
             }
