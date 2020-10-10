@@ -130,11 +130,19 @@ module Config =
                                 match v with
                                 | Channel o ->
                                     match o with
-                                    | Some i -> Some (e.Guild.GetChannel(i).Mention)
+                                    | Some i ->
+                                        match e.Guild.GetChannel i with
+                                        | null -> config.Guild.Lang.DeletedChannel
+                                        | channel -> channel.Mention
+                                        |> Some
                                     | None -> None
                                 | Role o ->
                                     match o with
-                                    | Some i -> Some (e.Guild.GetRole(i).Mention)
+                                    | Some i ->
+                                        match e.Guild.GetRole i with
+                                        | null -> config.Guild.Lang.DeletedRole
+                                        | role -> role.Mention
+                                        |> Some
                                     | None -> None
                                 |> function
                                     | Some s2 -> config.Guild.Lang.ConfigActualValue s s2
@@ -143,14 +151,11 @@ module Config =
                                 config.Guild.Lang.ConfigUnsetNull
                             | UnsetSuccess ->
                                 config.Guild.Lang.ConfigUnsetSuccess
-                        |> fun s -> e.Channel.SendMessageAsync(s)
-                        |> Async.AwaitTask |> Async.Ignore
                     | None ->
-                        async.Zero()
+                        config.Guild.Lang.ConfigInvalidName
             | None ->
                 config.Guild.Lang.ConfigMissingName config.Guild.CommandPrefix
-                |> fun s -> e.Channel.SendMessageAsync(s)
-                |> Async.AwaitTask
-                |> Async.Ignore
+            |> fun s -> e.Channel.SendMessageAsync(s)
+            |> Async.AwaitTask |> Async.Ignore
             |> Async.RunSynchronously
     }
