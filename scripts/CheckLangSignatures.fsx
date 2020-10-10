@@ -64,7 +64,7 @@ System.IO.Directory.GetFiles(LangFolder, "*.ini")
 |> function
     | [] -> printfn "OK"
     | errors ->
-        eprintfn "Errors Found:"
+        printfn "Errors Found:"
         errors
         |> List.iter (function
             | MissingString (file, str) ->
