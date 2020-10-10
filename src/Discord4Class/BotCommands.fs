@@ -16,5 +16,8 @@ module BotCommands =
             ("init", Init.exec)
             ("destroy", Destroy.exec)
             ("config", Config.exec)
+            ("q", Question.exec)
+            ("question", Question.exec)
+            ("teams", Teams.exec)
         ]
         |> Map.ofSeq
