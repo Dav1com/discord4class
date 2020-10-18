@@ -11,7 +11,7 @@ module GuildDeleted =
     let exec config _ (e : GuildDeleteEventArgs) =
         async {
             [
-                GC.DeleteOne config.App.DbDatabase (GC.Filter.And [
+                GC.DeleteOne config.App.Db (GC.Filter.And [
                     GC.Filter.Eq((fun g -> g._id), e.Guild.Id)
                 ])
             ]

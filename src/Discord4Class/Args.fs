@@ -3,6 +3,7 @@ namespace Discord4Class
 open System
 
 open Argu
+open Discord4Class.Constants
 open Discord4Class.Config
 open Discord4Class.Config.Types
 
@@ -32,10 +33,10 @@ module Args =
     let getAllArgs (result : ParseResults<_>) =
         result.GetAllResults()
 
-    let execArgs (appConf : InnerTypes.AppConfig) (args : ParseResults<_>) =
+    let execArgs (appConf : AppConfig) (args : ParseResults<_>) =
         match args with
         | v when args.Contains Version ->
-            printf "%s version v%s" appConf.AppName appConf.AppVersion
+            printf "%s version v%s" AppName AppVersion
             Error ""
         | _ -> Ok args
 

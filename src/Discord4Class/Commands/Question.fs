@@ -4,40 +4,32 @@ open System.Threading.Tasks
 open DSharpPlus
 open DSharpPlus.Entities
 open DSharpPlus.EventArgs
+open Discord4Class.Helpers.Messages
 open Discord4Class.Config.Types
 
 module Question =
 
-    let exec config clt (args : string) (e : MessageCreateEventArgs) = async {
-            if config.Guild.TeachersText.IsNone then
-                config.Guild.Lang.ErrorTextChannelNull "teachers-text"
-                    config.Guild.CommandPrefix "teachers-text"
-                |> fun s -> e.Channel.SendMessageAsync(s)
-                |> Async.AwaitTask |> Async.RunSynchronously |> ignore
-            elif Some e.Channel.Id = config.Guild.TeachersText then
-                () // List all questions ¿?
-            elif args.Trim() = "" then
-                DiscordEmoji.FromName(clt, config.Guild.Lang.QuestionNotSended)
-                |> e.Message.CreateReactionAsync
+    let exec app guild clt (args : string) (e : MessageCreateEventArgs) = async {
+        if guild.TeachersText.IsNone then
+            guild.Lang.ErrorTextChannelNull "teachers-text"
+                guild.CommandPrefix "teachers-text"
+            |> sendMessage e.Channel |> ignore
+        elif Some e.Channel.Id = guild.TeachersText then
+            () // List all questions ¿?
+        elif args.Trim() = "" then
+            addReaction e.Message clt app.Emojis.No
+        else
+            match e.Guild.GetChannel guild.TeachersText.Value with
+            | null ->
+                guild.Lang.ErrorTextChannelDeleted "teachers-text"
+                    guild.CommandPrefix "teachers-text"
+                |> sendMessage e.Channel |> ignore
+            | ch ->
+                e.Author.Id
+                |> e.Guild.GetMemberAsync
                 |> Async.AwaitTask |> Async.RunSynchronously
-            else
-                match e.Guild.GetChannel config.Guild.TeachersText.Value with
-                | null ->
-                    config.Guild.Lang.ErrorTextChannelDeleted "teachers-text"
-                        config.Guild.CommandPrefix "teachers-text"
-                    |> fun s -> e.Channel.SendMessageAsync(s)
-                    |> Async.AwaitTask |> Async.RunSynchronously |> ignore
-                | ch ->
-                    e.Author.Id
-                    |> e.Guild.GetMemberAsync
-                    |> Async.AwaitTask |> Async.RunSynchronously
-                    |> fun m -> m.DisplayName
-                    |> config.Guild.Lang.QuestionReceived args
-                    |> fun s -> ch.SendMessageAsync(s)
-                    |> Async.AwaitTask |> Async.RunSynchronously |> ignore
-
-                    DiscordEmoji.FromName(clt, config.Guild.Lang.QuestionReaction)
-                    |> e.Message.CreateReactionAsync
-                    |> Async.AwaitTask
-                    |> Async.RunSynchronously
+                |> fun m -> m.DisplayName
+                |> guild.Lang.QuestionReceived args
+                |> sendMessage ch |> ignore
+                addReaction e.Message clt app.Emojis.Sended
         }

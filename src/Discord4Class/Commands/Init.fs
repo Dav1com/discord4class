@@ -6,10 +6,10 @@ open DSharpPlus
 open DSharpPlus.Entities
 open DSharpPlus.EventArgs
 open DSharpPlus.Interactivity
+open Discord4Class.Helpers.Messages
 open Discord4Class.Helpers.Permission
-open Discord4Class.Config.InnerTypes
-open Discord4Class.Config.Types
 open Discord4Class.Repositories.GuildConfiguration
+open Discord4Class.Config.Types
 
 module Init =
 
@@ -28,36 +28,35 @@ module Init =
         Permissions.ReadMessageHistory +
         Permissions.SendMessages
 
-    let private messageCreated config (e : DiscordMessage) = Func<DiscordMessage, bool> (fun e2 ->
+    let private messageCreated guild (e : DiscordMessage) = Func<DiscordMessage, bool> (fun e2 ->
         e.ChannelId = e2.ChannelId && e2.Author.Id = e.Author.Id && (
-            e2.Content.ToLower() = config.Guild.Lang.ConfirmationYesResponse.ToLower() ||
-            e2.Content.ToLower() = config.Guild.Lang.ConfirmationNoResponse.ToLower()
+            e2.Content.ToLower() = guild.Lang.ConfirmationYesResponse.ToLower() ||
+            e2.Content.ToLower() = guild.Lang.ConfirmationNoResponse.ToLower()
         )
     )
 
-    let private afterConfirmation config (client : DiscordClient) (initMsg : DiscordMessage) (e : MessageCreateEventArgs) = Action<Task<InteractivityResult<DiscordMessage>>>(fun r ->
+    let private afterConfirmation app guild client
+        (confirmMsg : DiscordMessage) (e : MessageCreateEventArgs)
+        = Action<Task<InteractivityResult<DiscordMessage>>>(fun r ->
 
         let result = r.Result
         if result.TimedOut then
-            initMsg.Content + "\n" + config.Guild.Lang.ConfirmationTimeoutMessage
-            |> fun s -> initMsg.ModifyAsync(Optional s)
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
-            |> ignore
+            guild.Lang.ConfirmationTimeoutMessage
+            |> modifyMessage confirmMsg |> ignore
         else
-            if result.Result.Content.ToLower() = config.Guild.Lang.ConfirmationNoResponse.ToLower() then
-                config.Guild.Lang.ConfirmationCancellation
-                |> fun s -> e.Channel.SendMessageAsync(s)
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-                |> ignore
+            if result.Result.Content.ToLower() = guild.Lang.ConfirmationNoResponse.ToLower() then
+                guild.Lang.ConfirmationCancellation
+                |> sendMessage e.Channel |> ignore
             else
-
-                let thisMember = e.Guild.CurrentMember
+                [
+                    deleteMessageAsync confirmMsg
+                    deleteMessageAsync e.Message
+                    addReactionAsync e.Message client app.Emojis.Doing
+                ] |> Async.Parallel |> Async.RunSynchronously |> ignore
 
                 let teacherRole =
                     e.Guild.CreateRoleAsync(
-                        config.Guild.Lang.TeachersRoleName,
+                        guild.Lang.TeachersRoleName,
                         Nullable TeacherPerms,
                         Nullable DiscordColor.Blue,
                         Nullable true,
@@ -71,12 +70,12 @@ module Init =
 
                 // category container
                 let category =
-                    e.Guild.CreateChannelAsync(config.Guild.Lang.ClassCategoryName, ChannelType.Category)
+                    e.Guild.CreateChannelAsync(guild.Lang.ClassCategoryName, ChannelType.Category)
                     |> Async.AwaitTask
                     |> Async.RunSynchronously
                 let teachersText =
                     e.Guild.CreateChannelAsync(
-                        config.Guild.Lang.TeachersClassTextChannelName,
+                        guild.Lang.TeachersClassTextChannelName,
                         ChannelType.Text,
                         category,
                         overwrites = [
@@ -86,16 +85,13 @@ module Init =
                             DiscordOverwriteBuilder()
                                 .For(e.Guild.EveryoneRole)
                                 .Deny(Permissions.All)
-                            DiscordOverwriteBuilder()
-                                .For(thisMember)
-                                .Allow(minPermsText)
                         ]
                     )
                     |> Async.AwaitTask |> Async.RunSynchronously
 
                 let classText =
                     e.Guild.CreateChannelAsync(
-                        config.Guild.Lang.ClassTextChannelName,
+                        guild.Lang.ClassTextChannelName,
                         ChannelType.Text,
                         category,
                         overwrites = [
@@ -106,15 +102,12 @@ module Init =
                             DiscordOverwriteBuilder()
                                 .For(teacherRole)
                                 .Allow(Permissions.All)
-                            DiscordOverwriteBuilder()
-                                .For(thisMember)
-                                .Allow(minPermsText)
                         ]
                     )
                     |> Async.AwaitTask |> Async.RunSynchronously
                 let classVoice =
                     e.Guild.CreateChannelAsync(
-                        config.Guild.Lang.ClassVoiceChannelName,
+                        guild.Lang.ClassVoiceChannelName,
                         ChannelType.Voice,
                         category,
                         overwrites = [
@@ -125,24 +118,20 @@ module Init =
                             DiscordOverwriteBuilder()
                                 .For(teacherRole)
                                 .Allow(Permissions.All)
-                            DiscordOverwriteBuilder()
-                                .For(thisMember)
-                                .Allow(Permissions.AccessChannels)
                         ] )
                     |> Async.AwaitTask |> Async.RunSynchronously
 
-
-                if config.Guild.IsConfigOnDb then
+                if guild.IsConfigOnDb then
                     let filter = GC.Filter.And [ GC.Filter.Eq((fun g -> g._id), e.Guild.Id) ]
                     let update = GC.Update.Combine [
                         GC.Update.Set((fun g -> g.TeachersText), Some teachersText.Id)
                         GC.Update.Set((fun g -> g.ClassVoice), Some classVoice.Id)
                         GC.Update.Set((fun g -> g.TeacherRole), Some teacherRole.Id)
                     ]
-                    GC.UpdateOne config.App.DbDatabase filter update
+                    GC.UpdateOne app.Db filter update
                     |> Async.Ignore
                 else
-                    GC.Insert config.App.DbDatabase
+                    GC.Insert app.Db
                         { GC.Base with
                             _id = e.Guild.Id
                             TeachersText = Some teachersText.Id
@@ -150,29 +139,25 @@ module Init =
                             TeacherRole = Some teacherRole.Id }
                 |> Async.RunSynchronously
 
-                config.Guild.Lang.InitSuccess
-                |> fun s -> e.Channel.SendMessageAsync(s)
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-                |> ignore
+                exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
     )
 
-    let exec config (client : DiscordClient) mode (e : MessageCreateEventArgs) = async {
+    let exec app guild (client : DiscordClient) args (e : MessageCreateEventArgs) = async {
         if checkPermissions e RequiredPerms then
             if
-                config.Guild.TeachersText.IsSome ||
-                config.Guild.ClassVoice.IsSome ||
-                config.Guild.TeacherRole.IsSome
+                guild.TeachersText.IsSome ||
+                guild.ClassVoice.IsSome ||
+                guild.TeacherRole.IsSome
             then
-                config.Guild.Lang.InitAlreadyInited config.Guild.CommandPrefix
+                guild.Lang.InitAlreadyInited guild.CommandPrefix
                 |> fun s -> e.Channel.SendMessageAsync(s)
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
                 |> ignore
             else
-                let initMsg =
-                    config.Guild.Lang.InitConfirmationMsg config.Guild.CommandPrefix
-                        config.Guild.Lang.ConfirmationYesResponse config.Guild.Lang.ConfirmationNoResponse
+                let confirmMsg =
+                    guild.Lang.InitConfirmationMsg guild.CommandPrefix
+                        guild.Lang.ConfirmationYesResponse guild.Lang.ConfirmationNoResponse
                     |> fun s -> e.Channel.SendMessageAsync(s)
                     |> Async.AwaitTask
                     |> Async.RunSynchronously
@@ -184,7 +169,7 @@ module Init =
                 // blocked the threads of the main MessageCreated event. And (Task<_> ...).RunSynchronously()
                 // raises an exeption in DSharpPlus
                 inter.WaitForMessageAsync(
-                        messageCreated config e.Message, Nullable (TimeSpan.FromSeconds 10.0))
-                    .ContinueWith (afterConfirmation config client initMsg e)
+                        messageCreated guild e.Message, Nullable (TimeSpan.FromSeconds 10.0))
+                    .ContinueWith (afterConfirmation app guild client confirmMsg e)
                 |> ignore
     }

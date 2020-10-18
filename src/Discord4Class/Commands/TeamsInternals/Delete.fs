@@ -9,7 +9,6 @@ module Delete =
         guild.Channels
         |> Seq.map (fun kv -> kv.Value)
         |> Seq.filter (isTeamChannel config)
-        |> fun x -> printfn "TEST: %A" x; x
         |> Seq.map (fun ch ->
             ch.DeleteAsync()
             |> Async.AwaitTask

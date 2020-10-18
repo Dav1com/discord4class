@@ -8,7 +8,7 @@ open Discord4Class.Config.Types
 
 [<AutoOpen>]
 module CreateTeams =
-    let makeTeams bySize config (students : DiscordMember array) num =
+    let makeTeams bySize guild (students : DiscordMember array) num =
         let studentsNum = students.Length
         let membersPerTeam =
             if bySize then num
@@ -25,15 +25,15 @@ module CreateTeams =
         |> Array.map (fun i -> students.[i])
         |> Array.groupBy (fun _ ->
             if group >= teamsCount then
-                config.Guild.Lang.TeamsTemplate group
+                guild.Lang.TeamsTemplate group
             else
                 if count < membersPerTeam then
                     count <- count + 1
-                    config.Guild.Lang.TeamsTemplate group
+                    guild.Lang.TeamsTemplate group
                 else
                     count <- 1
                     group <- group+1
-                    config.Guild.Lang.TeamsTemplate group
+                    guild.Lang.TeamsTemplate group
         )
 
     let createRoles (guild : DiscordGuild) (teams : (string * DiscordMember array) array) =
@@ -72,9 +72,6 @@ module CreateTeams =
                         DiscordOverwriteBuilder()
                             .For(teacherRole)
                             .Allow(Permissions.All)
-                        DiscordOverwriteBuilder()
-                            .For(guild.CurrentMember)
-                            .Allow(minPermsText + Permissions.ManageChannels)
                     ]
                 ) |> Async.AwaitTask |> Async.Ignore
                 guild.CreateChannelAsync(
@@ -89,9 +86,6 @@ module CreateTeams =
                         DiscordOverwriteBuilder()
                             .For(teacherRole)
                             .Allow(Permissions.All)
-                        DiscordOverwriteBuilder()
-                            .For(guild.CurrentMember)
-                            .Allow(minPermsVoice + Permissions.ManageChannels)
                     ]
                 ) |> Async.AwaitTask |> Async.Ignore
             ]

@@ -42,15 +42,20 @@ module Bot =
         discord.UseInteractivity(iconf) |> ignore
 
         // Commands
-        AsyncEventHandler<DiscordClient, MessageCreateEventArgs>(MessageCreated.exec config)
+        AsyncEventHandler<_, _>(MessageCreated.exec config)
         |> discord.add_MessageCreated
-        // Clean database
-        AsyncEventHandler<DiscordClient, GuildDeleteEventArgs>(GuildDeleted.exec config)
+        // Clean DB
+        AsyncEventHandler<_, _>(GuildDeleted.exec config)
         |> discord.add_GuildDeleted
-        //TODO: discord.add_GuildRoleCreated //asks for quick actions
-        //TODO: discord.add_ChannelDeleted //check channels integrity and updates
-        //TODO: discord.add_VoiceStateUpdated //assistence service
-        //TODO: discord.add_MessageReactionAdded // Teachers mark as solved questions
+        // Mutes non teacher members on muted channels
+        AsyncEventHandler<_, _>(VoiceStateUpdated.exec config)
+        |> discord.add_VoiceStateUpdated
+        // Updates DB
+        AsyncEventHandler<_, _>(ChannelDeleted.exec config)
+        |> discord.add_ChannelDeleted
+        // Updates DB
+        AsyncEventHandler<_, _>(GuildRoleDeletes.exec config)
+        |> discord.add_GuildRoleDeleted
 
         do! discord.ConnectAsync() |> Async.AwaitTask
         Console.add_CancelKeyPress (new ConsoleCancelEventHandler (closeBot discord) )

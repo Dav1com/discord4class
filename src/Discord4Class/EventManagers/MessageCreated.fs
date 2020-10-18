@@ -21,17 +21,17 @@ module MessageCreated =
       { Name : string
         Args : string }
 
-    let private detectCallType config (client : DiscordClient) (e : MessageCreateEventArgs) =
-        if e.Message.Content.StartsWith config.Guild.CommandPrefix then
+    let private detectCallType config guildConf (client : DiscordClient) (e : MessageCreateEventArgs) =
+        if e.Message.Content.StartsWith guildConf.CommandPrefix then
             ByPrefix
         elif config.Bot.CommandByMention && e.Message.Content.StartsWith (client.CurrentUser.Mention.Insert(2, "!")) then
             ByMention
         else
             NoCmd
 
-    let private getCommand config (client : DiscordClient) (e : MessageCreateEventArgs) = function
+    let private getCommand config guildConf (client : DiscordClient) (e : MessageCreateEventArgs) = function
         | ByPrefix ->
-            (e.Message.Content.Substring config.Guild.CommandPrefix.Length)
+            (e.Message.Content.Substring guildConf.CommandPrefix.Length)
                 .Trim()
             |> fun s ->
                 s.IndexOf " "
@@ -70,26 +70,28 @@ module MessageCreated =
         async {
             try
                 if e.Channel.IsPrivate then
-                    sendDmResponse config e
+                    sendDmResponse config.App config.Bot.DefaultLang e
                 elif not e.Author.IsCurrent then
-                    let guildConf = loadGuildConfiguration config config.App.DbDatabase e.Guild.Id
+                    let guildConf = loadGuildConfiguration config config.App.Db e.Guild.Id
 
-                    detectCallType guildConf client e
-                    |> getCommand guildConf client e
+                    detectCallType config guildConf client e
+                    |> getCommand config guildConf client e
                     |> function
                         | Some cmd ->
                             cmd.Name
                             |> BotCommands.TryFind
                             |> function
-                                | Some f -> f guildConf client cmd.Args e
+                                | Some f -> f config.App guildConf client cmd.Args e
                                 | None -> cmdNotFound cmd.Name guildConf e
                         | None ->
                             async.Zero()
                 elif e.Message.Content.Length = 0 then
-                    sendWelcome config client e
+                    sendWelcome config.App config.Bot.DefaultLang config.Bot.CommandPrefix client e
                 else
                     async.Zero()
                 |> Async.RunSynchronously
             with
-                | ex -> cmdErrorUnknown config e ex |> Async.RunSynchronously
+                | ex ->
+                    cmdErrorUnknown config.App config.Bot.DefaultLang e ex
+                    |> Async.RunSynchronously
         } |> Async.StartAsTask :> Task

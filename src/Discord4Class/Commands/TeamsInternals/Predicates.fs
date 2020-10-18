@@ -6,24 +6,24 @@ open Discord4Class.Config.Types
 [<AutoOpen>]
 module Predicates =
 
-    let isTeamRole config (role : DiscordRole) =
+    let isTeamRole guild (role : DiscordRole) =
         (
-            config.Guild.Lang.TeamsNumberIsRight = "1" &&
-            role.Name.StartsWith config.Guild.Lang.Team
+            guild.Lang.TeamsNumberIsRight = "1" &&
+            role.Name.StartsWith guild.Lang.Team
         ) ||
         (
-            config.Guild.Lang.TeamsNumberIsRight = "0" &&
-            role.Name.EndsWith config.Guild.Lang.Team
+            guild.Lang.TeamsNumberIsRight = "0" &&
+            role.Name.EndsWith guild.Lang.Team
         )
 
-    let isTeamChannel config (channel : DiscordChannel) =
+    let isTeamChannel guild (channel : DiscordChannel) =
         (
-            config.Guild.Lang.TeamsNumberIsRight = "1" &&
-            channel.Name.ToLower().StartsWith (config.Guild.Lang.Team.ToLower())
+            guild.Lang.TeamsNumberIsRight = "1" &&
+            channel.Name.ToLower().StartsWith (guild.Lang.Team.ToLower())
         ) ||
         (
-            config.Guild.Lang.TeamsNumberIsRight = "0" &&
-            channel.Name.ToLower().EndsWith (config.Guild.Lang.Team.ToLower())
+            guild.Lang.TeamsNumberIsRight = "0" &&
+            channel.Name.ToLower().EndsWith (guild.Lang.Team.ToLower())
         )
 
     let existsTeams config (e : DiscordGuild) =

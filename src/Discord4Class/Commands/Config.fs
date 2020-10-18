@@ -1,9 +1,9 @@
 namespace Discord4Class.Commands
 
-open System.Threading.Tasks
+open FSharp.Reflection
 open DSharpPlus
-open DSharpPlus.Entities
 open DSharpPlus.EventArgs
+open Discord4Class.Helpers.Messages
 open Discord4Class.Helpers.Permission
 open Discord4Class.Config.Types
 open Discord4Class.Repositories.GuildConfiguration
@@ -13,149 +13,132 @@ module Config =
     [<Literal>]
     let RequiredPerms = Permissions.Administrator
 
-    type private ValueType =
-        | Channel of uint64 option
-        | Role of uint64 option
+    type private FiledType =
+        | TextChannel
+        | Role
+        | VoiceChannel
 
-    type private OperationResult =
-        | Success
-        | UnsetSuccess
-        | UnsetNull
-        | ShowValue of string * ValueType
-        | InvalidNewValue of string
+    exception CommandConfigInvalidFieldException
+    let private getFieldIndex objType name =
+        FSharpType.GetRecordFields(objType)
+        |> Array.tryFindIndex (fun attr -> attr.Name = name)
+        |> function
+        | Some i -> i
+        | None -> raise CommandConfigInvalidFieldException
 
-    let private configName args =
-        match args with
-        | "" -> None
-        | s -> Some <| s.Split(" ").[0].ToLower()
+    let private configNames =
+        [|
+            ("teachers-text", (
+                getFieldIndex typeof<GC> "TeachersText",
+                getFieldIndex typeof<GuildConfig> "TeachersText",
+                TextChannel ))
+            ("class-voice", (
+                getFieldIndex typeof<GC> "ClassVoice",
+                getFieldIndex typeof<GuildConfig> "ClassVoice",
+                VoiceChannel ))
+            ("teacher-role", (
+                getFieldIndex typeof<GC> "TeacherRole",
+                getFieldIndex typeof<GuildConfig> "ClassVoice",
+                Role ))
+        |] |> Map.ofArray
 
-    let private updateTeachersText config (args : string) (e : MessageCreateEventArgs) = async { return
-        match e.Message.MentionedChannels |> Array.ofSeq with
-        | _ when args.Contains "unset" ->
-            match config.Guild.TeachersText with
-            | Some _ ->
-                let filter = GC.Filter.And [ GC.Filter.Eq ((fun gc -> gc._id), e.Guild.Id) ]
-                GC.Update.Set((fun gc -> gc.TeachersText), None)
-                |> GC.UpdateOne config.App.DbDatabase filter
-                |> Async.RunSynchronously |> ignore
-                UnsetSuccess
-            | None -> UnsetNull
-        | [||] -> ShowValue ("teachers-text", Channel config.Guild.TeachersText )
-        | chs ->
-            { GC.Base with
-                _id = e.Guild.Id
-                TeachersText = Some chs.[0].Id }
-            |> GC.InsertUpdate config.App.DbDatabase config.Guild.IsConfigOnDb
-            |> Async.RunSynchronously
-            Success
-    }
+    let private gcIdIndex = getFieldIndex typeof<GC> "_id"
 
-    let private updateClassVoice config (args : string) (e : MessageCreateEventArgs) = async { return
-        match args.Split " " with
-        | a when a.Length < 2 -> ShowValue ("class-voice", Channel config.Guild.ClassVoice)
-        | a when a.[1] = "unset" ->
-            match config.Guild.ClassVoice with
-            | Some _ ->
-                let filter = GC.Filter.And [ GC.Filter.Eq ((fun gc -> gc._id), e.Guild.Id) ]
-                GC.Update.Set((fun gc -> gc.ClassVoice), None)
-                |> GC.UpdateOne config.App.DbDatabase filter
-                |> Async.RunSynchronously |> ignore
-                UnsetSuccess
-            | None -> UnsetNull
-        | chs ->
-            e.Guild.Channels :> seq<_>
-            |> Seq.map (|KeyValue|)
-            |> Map.ofSeq
-            |> Map.tryPick (fun id ch ->
-                if ch.Name = chs.[1] && ch.Type = ChannelType.Voice then Some ch
-                else None
-            )
+    let private getValue fieldType value (e : MessageCreateEventArgs) =
+        match fieldType with
+        | TextChannel ->
+            match List.ofSeq e.MentionedChannels with
+            | ch::_ when ch.Type = ChannelType.Text ->
+                Some ch.Id
+            | _ -> None
+        | Role ->
+            match List.ofSeq e.MentionedRoles with
+            | rl::_ -> Some rl.Id
+            | _ -> None
+        | VoiceChannel ->
+            e.Guild.Channels.Values
+            |> Seq.tryFind (fun c -> c.Name = value)
             |> function
-                | Some ch ->
-                    { GC.Base with
-                        _id = e.Guild.Id
-                        ClassVoice = Some ch.Id }
-                    |> GC.InsertUpdate config.App.DbDatabase config.Guild.IsConfigOnDb
-                    |> Async.RunSynchronously
-                    Success
-                | None ->
-                    InvalidNewValue "class-voice"
-    }
+            | Some ch when ch.Type = ChannelType.Voice ->
+                Some ch.Id
+            | _ -> None
 
-    let private updateTeacherRole config (args : string) (e : MessageCreateEventArgs) = async { return
-        match e.Message.MentionedRoles |> Array.ofSeq with
-        | _ when args.Trim().EndsWith "unset" ->
-            match config.Guild.TeacherRole with
+    let private update app guild client name gcIndex configIndex fieldType value (e : MessageCreateEventArgs) =
+        match value with
+        | Some "unset" ->
+            match FSharpValue.GetRecordFields(guild).[configIndex] :?> uint64 option with
             | Some _ ->
                 let filter = GC.Filter.And [
                     GC.Filter.Eq((fun gc -> gc._id), e.Guild.Id)
                 ]
-                GC.Update.Set((fun gc -> gc.TeacherRole), None)
-                |> GC.UpdateOne config.App.DbDatabase filter
+                GC.Update.Set((fun gc -> FSharpValue.GetRecordFields(gc).[gcIndex] :?> uint64 option), None)
+                |> GC.UpdateOne app.Db filter
                 |> Async.RunSynchronously |> ignore
-                UnsetSuccess
-            | None -> UnsetNull
-        | [||] -> ShowValue ("teacher-role", Role config.Guild.TeacherRole)
-        | roles ->
-            { GC.Base with
-                _id = e.Guild.Id
-                TeacherRole = Some roles.[0].Id }
-            |> GC.InsertUpdate config.App.DbDatabase config.Guild.IsConfigOnDb
-            |> Async.RunSynchronously
-            Success
-    }
-
-    let private configNames =
-        [|
-            ("teachers-text", updateTeachersText)
-            ("class-voice", updateClassVoice)
-            ("teacher-role", updateTeacherRole)
-        |] |> Map.ofArray
-
-    let exec config _ args (e : MessageCreateEventArgs) = async {
-        if checkPermissions e RequiredPerms then
-            match configName args with
-            | Some s ->
-                configNames.TryFind s
-                |> function
-                    | Some f ->
-                        f config args e
-                        |> Async.RunSynchronously
-                        |> function
-                            | Success ->
-                                config.Guild.Lang.ConfigSuccess
-                            | InvalidNewValue s ->
-                                config.Guild.Lang.ConfigInvalidNewValue s
-                            | ShowValue (s, v) ->
-                                match v with
-                                | Channel o ->
-                                    match o with
-                                    | Some i ->
-                                        match e.Guild.GetChannel i with
-                                        | null -> config.Guild.Lang.DeletedChannel
-                                        | channel -> channel.Mention
-                                        |> Some
-                                    | None -> None
-                                | Role o ->
-                                    match o with
-                                    | Some i ->
-                                        match e.Guild.GetRole i with
-                                        | null -> config.Guild.Lang.DeletedRole
-                                        | role -> role.Mention
-                                        |> Some
-                                    | None -> None
-                                |> function
-                                    | Some s2 -> config.Guild.Lang.ConfigActualValue s s2
-                                    | None -> config.Guild.Lang.ConfigActualValueNull s
-                            | UnsetNull ->
-                                config.Guild.Lang.ConfigUnsetNull
-                            | UnsetSuccess ->
-                                config.Guild.Lang.ConfigUnsetSuccess
-                    | None ->
-                        config.Guild.Lang.ConfigInvalidName
+                exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
             | None ->
-                config.Guild.Lang.ConfigMissingName config.Guild.CommandPrefix
-            |> fun s -> e.Channel.SendMessageAsync(s)
-            |> Async.AwaitTask |> Async.Ignore
-            |> Async.RunSynchronously
+                exchangeReactions e.Message client app.Emojis.Doing app.Emojis.No
+                guild.Lang.ConfigUnsetNull
+                |> sendMessage e.Channel |> ignore
+        | Some v ->
+            getValue fieldType v e
+            |> function
+            | Some v ->
+                let hold = FSharpValue.GetRecordFields(GC.Base)
+                hold.[gcIndex] <- (Some v) :> obj
+                hold.[gcIdIndex] <- e.Guild.Id :> obj
+                FSharpValue.MakeRecord(typeof<GC>, hold) :?> GC
+                |> GC.InsertUpdate app.Db guild.IsConfigOnDb
+                |> Async.RunSynchronously
+                exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
+            | _ ->
+                exchangeReactions e.Message client app.Emojis.Doing app.Emojis.No
+                guild.Lang.ConfigInvalidNewValue name
+                |> sendMessage e.Channel |> ignore
+        | None ->
+            match fieldType with
+            | TextChannel | VoiceChannel ->
+                match FSharpValue.GetRecordFields(guild).[configIndex] :?> uint64 option with
+                | Some i ->
+                    match e.Guild.GetChannel i with
+                    | null -> guild.Lang.DeletedChannel
+                    | channel -> channel.Mention
+                    |> Some
+                | None -> None
+            | Role ->
+                match FSharpValue.GetRecordFields(guild).[configIndex] :?> uint64 option with
+                | Some i ->
+                    match e.Guild.GetRole i with
+                    | null -> guild.Lang.DeletedRole
+                    | role -> role.Mention
+                    |> Some
+                | None -> None
+            |> function
+            | Some av -> guild.Lang.ConfigActualValue av
+            | None -> guild.Lang.ConfigActualValueNull name
+            |> sendMessage e.Channel |> ignore
+            removeReaction e.Message client app.Emojis.Doing
+
+    let exec app guild client (args : string) (e : MessageCreateEventArgs) = async {
+        if checkPermissions e RequiredPerms then
+            let phrased =
+                args.Split(" ")
+                |> Array.filter ((<>) "")
+                |> List.ofArray
+            match phrased with
+            | name::tail ->
+                addReaction e.Message client app.Emojis.Doing
+                let value = List.tryHead tail
+                configNames
+                |> Map.tryFind name
+                |> function
+                | Some (gcIndex, configIndex, valueType) ->
+                    update app guild client name gcIndex configIndex valueType value e
+                | None ->
+                    exchangeReactions e.Message client app.Emojis.Doing app.Emojis.No
+                    guild.Lang.ConfigInvalidName
+                    |> sendMessage e.Channel |> ignore
+            | [] ->
+                exchangeReactions e.Message client app.Emojis.Doing app.Emojis.No
+                guild.Lang.ConfigMissingName guild.CommandPrefix
+                |> sendMessage e.Channel |> ignore
     }

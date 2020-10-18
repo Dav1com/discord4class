@@ -1,6 +1,4 @@
-﻿[<Literal>]
-let IniPath = "config.ini" //TODO: move to App.config
-
+﻿open Discord4Class.Constants
 open Discord4Class.Helpers.Railway
 open Discord4Class.Config.Loader
 open Discord4Class.Args
@@ -10,7 +8,7 @@ open Discord4Class.Bot
 let main argv =
     let config = loadConfiguration IniPath
 
-    getParser config.App.AppName
+    getParser AppName
     |> parseArgv argv
     |> execArgs config.App
     >>= switch (

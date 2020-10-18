@@ -1,11 +1,11 @@
 namespace Discord4Class.Commands
 
-open System.Threading.Tasks
 open DSharpPlus
 open DSharpPlus.EventArgs
+open Discord4Class.Helpers.Messages
 open Discord4Class.Helpers.Permission
-open Discord4Class.Config.Types
 open Discord4Class.Repositories.GuildConfiguration
+open Discord4Class.Config.Types
 
 module Prefix =
 
@@ -14,31 +14,23 @@ module Prefix =
     [<Literal>]
     let PrefixMaxSize = 2
 
-    let exec (config : Config) _ newPrefix (e : MessageCreateEventArgs) = async {
+    let exec app guild _ newPrefix (e : MessageCreateEventArgs) = async {
         if checkPermissions e RequiredPerms then
             newPrefix
             |> function
-                | s when s = config.Guild.CommandPrefix ->
-                    config.Guild.Lang.PrefixNoChange
-                    |> fun s -> e.Channel.SendMessageAsync(s)
-                    |> Async.AwaitTask |> Async.Ignore
+                | s when s = guild.CommandPrefix ->
+                    guild.Lang.PrefixNoChange
                 | s when s = "" ->
-                    config.Guild.Lang.PrefixMissingArg config.Guild.CommandPrefix
-                    |> fun s -> e.Channel.SendMessageAsync(s)
-                    |> Async.AwaitTask |> Async.Ignore
+                    guild.Lang.PrefixMissingArg guild.CommandPrefix
                 | s when s.Length > PrefixMaxSize ->
-                    config.Guild.Lang.PrefixTooLong PrefixMaxSize
-                    |> fun s -> e.Channel.SendMessageAsync(s)
-                    |> Async.AwaitTask |> Async.Ignore
+                    guild.Lang.PrefixTooLong PrefixMaxSize
                 | s ->
                     { GC.Base with
                         _id = e.Guild.Id
                         CommandPrefix = Some s }
-                    |> GC.InsertUpdate config.App.DbDatabase config.Guild.IsConfigOnDb
+                    |> GC.InsertUpdate app.Db guild.IsConfigOnDb
                     |> Async.RunSynchronously
 
-                    config.Guild.Lang.PrefixSuccess newPrefix
-                    |> fun s -> e.Channel.SendMessageAsync(s)
-                    |> Async.AwaitTask |> Async.Ignore
-            |> Async.RunSynchronously
+                    guild.Lang.PrefixSuccess newPrefix
+            |> sendMessage e.Channel |> ignore
     }

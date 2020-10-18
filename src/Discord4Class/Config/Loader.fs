@@ -1,7 +1,6 @@
 namespace Discord4Class.Config
 
 open System.IO
-open System.Reflection
 open Microsoft.Extensions.Configuration
 open FsConfig
 open Discord4Class.Db
@@ -15,29 +14,18 @@ module Loader =
     let extractConfigOrFail (config : Result<IniConfig,_>) =
         match config with
         | Ok c ->
-            let assembly = Assembly.GetExecutingAssembly().GetName()
             let langPath = "res/lang/"
             let fullLang = loadLangFiles langPath
-            let defLang = c.Bot.DefaultLang
             {
                 Bot = c.Bot
                 Persistence = c.Persistence
                 Preferences = c.Preferences
                 App = {
-                    AppName = assembly.Name
-                    AppVersion = assembly.Version.ToString()
-                    DocsURL = "<PlaceHolder>"
-                    JoinGuildURL = "<PlaceHolder>"
-                    DbDatabase = openConnection c.Persistence.DbUri
-                }
-                Lang = fullLang
-                Guild = {
-                    Lang = fullLang.[defLang]
-                    CommandPrefix = c.Bot.CommandPrefix
-                    IsConfigOnDb = false
-                    TeachersText = None
-                    ClassVoice = None
-                    TeacherRole = None
+                    DocsURL = c.Misc.DocsUrl
+                    JoinGuildURL = c.Misc.DocsUrl
+                    AllLangs = fullLang
+                    Db = openConnection c.Persistence.DbUri
+                    Emojis = c.Emojis
                 }
             }
         | Error err ->
@@ -71,30 +59,26 @@ module Loader =
         | Some g ->
             let lang =
                 match g.Language with
-                | Some l -> c.Lang.[l]
-                | None -> c.Lang.[c.Bot.DefaultLang]
+                | Some l -> c.App.AllLangs.[l]
+                | None -> c.App.AllLangs.[c.Bot.DefaultLang]
             let prefix =
                 match g.CommandPrefix with
                 | Some p -> p
                 | None -> c.Bot.CommandPrefix
-            { c with
-                Guild = {
-                    Lang = lang
-                    CommandPrefix = prefix
-                    IsConfigOnDb = true
-                    TeachersText = g.TeachersText
-                    ClassVoice = g.ClassVoice
-                    TeacherRole = g.TeacherRole
-                }
+            {
+                Lang = lang
+                CommandPrefix = prefix
+                IsConfigOnDb = true
+                TeachersText = g.TeachersText
+                ClassVoice = g.ClassVoice
+                TeacherRole = g.TeacherRole
             }
         | None ->
-            { c with
-                Guild = {
-                    Lang = c.Lang.[c.Bot.DefaultLang]
-                    CommandPrefix = c.Bot.CommandPrefix
-                    IsConfigOnDb = false
-                    TeachersText = None
-                    ClassVoice = None
-                    TeacherRole = None
-                }
+            {
+                Lang = c.App.AllLangs.[c.Bot.DefaultLang]
+                CommandPrefix = c.Bot.CommandPrefix
+                IsConfigOnDb = false
+                TeachersText = None
+                ClassVoice = None
+                TeacherRole = None
             }

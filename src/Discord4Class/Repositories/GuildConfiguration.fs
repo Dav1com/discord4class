@@ -73,7 +73,7 @@ module GuildConfiguration =
                 GC.Update.Set((fun gc -> gc.ClassVoice), Some i)
             | {TeacherRole = Some i} ->
                 GC.Update.Set((fun gc -> gc.TeacherRole), Some i)
-            | _ -> raise ExceptionInsertUpdateNothing
+            | _ -> raise InsertUpdateNothingException
             |> GC.UpdateOne db filter
 
         static member DeleteOne (db : IMongoDatabase) (filter : FilterDefinition<GuildConfiguration>) =

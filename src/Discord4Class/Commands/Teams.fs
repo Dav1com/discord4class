@@ -2,28 +2,48 @@ namespace Discord4Class.Commands
 
 open System
 open DSharpPlus
+open DSharpPlus.Entities
 open DSharpPlus.EventArgs
+open Discord4Class.Constants
+open Discord4Class.Helpers.Messages
 open Discord4Class.Helpers.String
+open Discord4Class.Helpers.Permission
 open Discord4Class.Config.Types
 open Discord4Class.Commands.TeamsInternals
 
 module Teams =
 
-    let exec config _client (args : string) (e : MessageCreateEventArgs) = async {
-        if config.Guild.TeacherRole.IsNone then
-            ()
-        elif config.Guild.ClassVoice.IsNone then
-            ()
-        else
+    [<Literal>]
+    let StudentsLimit = 1000
+    [<Literal>]
+    let TeamsLimit = 100
+
+    let exec app guild client (args : string) (e : MessageCreateEventArgs) = async {
+        let thisMemb = e.Guild.Members.[e.Author.Id]
+        if guild.TeacherRole.IsNone then
+            guild.Lang.ErrorRoleNull "teacher-role"
+                guild.CommandPrefix "teacher-rol"
+            |> sendMessage e.Channel |> ignore
+        elif guild.ClassVoice.IsNone then
+            guild.Lang.ErrorVoiceChannelNull "class-voice"
+                guild.CommandPrefix "class-voice"
+            |> sendMessage e.Channel |> ignore
+        elif checkIsTeacher thisMemb guild.TeacherRole.Value then
             (
-                config.Guild.TeacherRole.Value
+                guild.TeacherRole.Value
                 |> e.Guild.GetRole,
-                config.Guild.ClassVoice.Value
+                guild.ClassVoice.Value
                 |> e.Guild.GetChannel
             )
             |> function
-            | (null,_) -> ()
-            | (_,null) -> ()
+            | (null,_) ->
+                guild.Lang.ErrorRoleDeleted "teacher-rol"
+                    guild.CommandPrefix "teacher-rol"
+                |> sendMessage e.Channel |> ignore
+            | (_,null) ->
+                guild.Lang.ErrorVoiceChannelDeleted "class-voice"
+                    guild.CommandPrefix "class-voice"
+                |> sendMessage e.Channel |> ignore
             | (teacherRole, classVoice) ->
                 let phrased =
                     args.Split " "
@@ -31,82 +51,95 @@ module Teams =
                     |> Array.map (fun s -> s.Trim().ToLower())
                 match phrased with
                 | [|"move"|] ->
-                    let channels = getTeamChannels config ChannelType.Voice e.Guild
-                    getTeamRoles config e.Guild
-                    |> getTeamMembers config e.Guild
+                    addReaction e.Message client app.Emojis.Doing
+                    let channels = getTeamChannels guild ChannelType.Voice e.Guild
+                    getTeamRoles guild e.Guild
+                    |> getTeamMembers guild e.Guild
                     |> List.choose (function
                         | Ok (a,b) -> Some (a,b)
                         | _ -> None
                     )
                     |> Array.ofList
                     |> moveMembers classVoice channels
-                    config.Guild.Lang.TeamsMoved
+                    exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
                 | [|"return"|] ->
-                    let channels = getTeamChannels config ChannelType.Voice e.Guild
-                    getTeamRoles config e.Guild
-                    |> getTeamMembers config e.Guild
+                    addReaction e.Message client app.Emojis.Doing
+                    let channels = getTeamChannels guild ChannelType.Voice e.Guild
+                    getTeamRoles guild e.Guild
+                    |> getTeamMembers guild e.Guild
                     |> List.choose (function
                         | Ok (a,b) -> Some (a,b)
                         | _ -> None
                     )
                     |> Array.ofList
                     |> returnMembers classVoice channels
-                    config.Guild.Lang.TeamsReturned
+                    exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
                 | [|"destroy"|] ->
-                    deleteChannels config e.Guild
-                    getTeamRoles config e.Guild
+                    addReaction e.Message client app.Emojis.Doing
+                    deleteChannels guild e.Guild
+                    getTeamRoles guild e.Guild
                     |> deleteRoles
-                    config.Guild.Lang.TeamsDestroyed
+                    exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
                 | [|"manual"|] ->
-                    let roles = getTeamRoles config e.Guild
+                    addReaction e.Message client app.Emojis.Doing
+                    let roles = getTeamRoles guild e.Guild
                     let teams =
                         roles
-                        |> getTeamMembers config e.Guild
+                        |> getTeamMembers guild e.Guild
                         |> List.choose (function
                             | Ok (a,b) -> Some (a,b)
                             | _ -> None
                         )
                         |> Array.ofList
                     createChannels teacherRole e.Guild teams roles
-                    config.Guild.Lang.TeamsChannelsCreated
+                    exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
                 | [|"size"; "0"|] | [|"online"; "size"; "0"|] ->
-                    config.Guild.Lang.TeamsSizeZero
+                    guild.Lang.TeamsSizeZero
+                    |> sendMessage e.Channel |> ignore
                 | [|"size"; num|] | [|"online"; "size"; num|] ->
                     if not (isNumeric num) then
-                        config.Guild.Lang.TeamsNonNumericArgument config.Guild.CommandPrefix
-                    elif existsTeams config e.Guild then
-                        config.Guild.Lang.TeamsAlreadyCreated config.Guild.CommandPrefix
+                        guild.Lang.TeamsNonNumericArgument guild.CommandPrefix
+                        |> sendMessage e.Channel |> ignore
+                    elif existsTeams guild e.Guild then
+                        guild.Lang.TeamsAlreadyCreated guild.CommandPrefix
+                        |> sendMessage e.Channel |> ignore
                     else
                         let students = getStudents (phrased.Length = 3) teacherRole classVoice e.Guild
                         let size = int num
                         if size > students.Length then
-                            config.Guild.Lang.TeamsSizeTooLarge
+                            guild.Lang.TeamsSizeTooLarge students.Length
+                            |> sendMessage e.Channel |> ignore
                         else
-                            let teams = makeTeams true config students size
+                            addReaction e.Message client app.Emojis.Doing
+                            let teams = makeTeams true guild students size
                             teams
                             |> createRoles e.Guild
                             |> createChannels teacherRole e.Guild teams
-                            config.Guild.Lang.TeamsSuccess
+                            exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
                 | [|"0"|] | [|"online"; "0"|] ->
-                    config.Guild.Lang.TeamsNumberZero
+                    guild.Lang.TeamsNumberZero
+                    |> sendMessage e.Channel |> ignore
                 | [|num|] | [|"online"; num|] ->
                     if not (isNumeric num) then
-                        config.Guild.Lang.TeamsNonNumericArgument config.Guild.CommandPrefix
-                    elif existsTeams config e.Guild then
-                        config.Guild.Lang.TeamsAlreadyCreated config.Guild.CommandPrefix
+                        guild.Lang.TeamsNonNumericArgument guild.CommandPrefix
+                        |> sendMessage e.Channel |> ignore
+                    elif existsTeams guild e.Guild then
+                        guild.Lang.TeamsAlreadyCreated guild.CommandPrefix
+                        |> sendMessage e.Channel |> ignore
                     else
                         let teamsCount = int num;
                         let students = getStudents (phrased.Length = 2) teacherRole classVoice e.Guild
                         if teamsCount > students.Length then
-                            config.Guild.Lang.TeamsNumberTooLarge
+                            guild.Lang.TeamsNumberTooLarge students.Length
+                            |> sendMessage e.Channel |> ignore
                         else
-                            let teams = makeTeams false config students teamsCount
+                            addReaction e.Message client app.Emojis.Doing
+                            let teams = makeTeams false guild students teamsCount
                             teams
                             |> createRoles e.Guild
                             |> createChannels teacherRole e.Guild teams
-                            config.Guild.Lang.TeamsSuccess
+                            exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
                 | _ ->
-                    config.Guild.Lang.TeamsMissingArgument config.Guild.CommandPrefix
-                |> fun s -> e.Channel.SendMessageAsync(s)
-                |> Async.AwaitTask |> Async.RunSynchronously |> ignore
+                    guild.Lang.TeamsInvalidArguments guild.CommandPrefix
+                    |> sendMessage e.Channel |> ignore
     }

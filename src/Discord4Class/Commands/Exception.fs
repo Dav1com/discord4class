@@ -1,11 +1,8 @@
 namespace Discord4Class.Commands
 
-open System
-open System.Threading.Tasks
-open DSharpPlus.Entities
 open DSharpPlus.EventArgs
-open Discord4Class.Helpers.Permission
 open Discord4Class.Helpers.Embed
+open Discord4Class.Lang.Types
 open Discord4Class.Config.Types
 
 module Exception =
@@ -13,22 +10,19 @@ module Exception =
     [<Literal>]
     let private EmbedColor = 0xFF0000
 
-    let cmdNotFound cmd config (msg : MessageCreateEventArgs) = async {
+    let cmdNotFound cmd guild (msg : MessageCreateEventArgs) = async {
         let embed =
-            config.Guild.Lang.ErrorCmdNotFound cmd
-            |> newEmbed EmbedColor config.Guild.Lang.ErrorEmbedAuthor
+            guild.Lang.ErrorCmdNotFound cmd
+            |> newEmbed EmbedColor guild.Lang.ErrorEmbedAuthor
         msg.Channel.SendMessageAsync(msg.Author.Mention, false, embed)
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
-        |> ignore
+        |> Async.AwaitTask |> Async.RunSynchronously |> ignore
     }
 
-    let cmdErrorUnknown config (msg : MessageCreateEventArgs) (ex : exn) = async {
+    let cmdErrorUnknown app defaultLang (msg : MessageCreateEventArgs) (ex : exn) = async {
+        let lang = app.AllLangs.[defaultLang]
         let embed =
-            config.Guild.Lang.ErrorCmdUnknown (ex.GetType().ToString()) ex.Message
-            |> newEmbed EmbedColor config.Guild.Lang.ErrorEmbedAuthor
+            lang.ErrorCmdUnknown (ex.GetType().ToString()) ex.Message
+            |> newEmbed EmbedColor lang.ErrorEmbedAuthor
         msg.Channel.SendMessageAsync(msg.Author.Mention, false, embed)
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
-        |> ignore
+        |> Async.AwaitTask |> Async.RunSynchronously |> ignore
     }
