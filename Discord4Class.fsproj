@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="src/Discord4Class/Constants.fs" />
     <Compile Include="src/Discord4Class/Helpers/*.fs" />
     <Compile Include="src/Discord4Class/Db.fs" />
     <Compile Include="src/Discord4Class/Lang/Types.fs" />
