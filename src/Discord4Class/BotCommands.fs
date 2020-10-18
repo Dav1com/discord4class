@@ -7,7 +7,7 @@ open Discord4Class.Commands
 
 module BotCommands =
 
-    let (BotCommands : Map<string, Config -> DiscordClient -> string -> MessageCreateEventArgs -> unit Async>) =
+    let (BotCommands : Map<string, AppConfig -> GuildConfig -> DiscordClient -> string -> MessageCreateEventArgs -> unit Async>) =
         [
             ("ping", Ping.exec)
             ("lang", Lang.exec)
@@ -19,5 +19,6 @@ module BotCommands =
             ("q", Question.exec)
             ("question", Question.exec)
             ("teams", Teams.exec)
+            ("mute", Mute.exec)
         ]
         |> Map.ofSeq
