@@ -20,5 +20,6 @@ module BotCommands =
             ("question", Question.exec)
             ("teams", Teams.exec)
             ("mute", Mute.exec)
+            ("math", LatexMath.exec)
         ]
         |> Map.ofSeq
