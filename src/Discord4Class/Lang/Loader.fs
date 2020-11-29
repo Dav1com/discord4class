@@ -8,13 +8,10 @@ open Discord4Class.Lang.Types
 
 module Loader =
 
-    let private loadLangFileAsync (lang : string) (fullPath : string) = async {
-        let c =
-            ConfigurationBuilder()
-                .AddIniFile(fullPath)
-                .Build()
+    let private loadLangFileAsync (lang: string) (fullPath: string) = async {
+        let c = ConfigurationBuilder().AddIniFile(fullPath).Build()
         let ac = AppConfig c
-        return (lang.ToLower(), ac.Get<LangStrings> ())
+        return ( lang.ToLower(), ac.Get<LangStrings>() )
     }
 
     let loadLangFiles path =
