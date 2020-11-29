@@ -9,11 +9,7 @@ let (=<<) action train =
 let switch action train =
     Ok (action train)
 
-let onError =
-    Result.mapError
-
-let getResult =
-    function
+let getResult = function
     | Ok x    -> x
     | Error x -> x
 
