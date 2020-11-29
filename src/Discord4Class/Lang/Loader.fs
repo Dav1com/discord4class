@@ -1,5 +1,6 @@
 namespace Discord4Class.Lang
 
+open System
 open System.IO
 open Microsoft.Extensions.Configuration
 open FsConfig
@@ -17,13 +18,15 @@ module Loader =
     }
 
     let loadLangFiles path =
-        Directory.GetFiles(Directory.GetCurrentDirectory(), path + "*.ini")
-        |> Array.map (
-            fun f -> loadLangFileAsync (Path.GetFileNameWithoutExtension f) (Path.GetFullPath f)
-        )
+        Directory.GetFiles
+            ( AppDomain.CurrentDomain.BaseDirectory,
+              path + "*.ini" )
+        |> Array.map (fun f ->
+            loadLangFileAsync
+                (Path.GetFileNameWithoutExtension f)
+                (Path.GetFullPath f) )
         |> Async.Parallel
         |> Async.RunSynchronously
-        // TODO: remove the warning
         |> Array.map (fun (s, la) ->
             match la with
             | Ok l ->
