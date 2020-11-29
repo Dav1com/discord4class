@@ -26,7 +26,9 @@ module Loader =
         // TODO: remove the warning
         |> Array.map (fun (s, la) ->
             match la with
-            | Ok l -> (s, LangBuilders.OfStrings (l.SanitizeBackslashes()) )
-            | Error l -> failwithf "Error while loading lang file '%s': %A" s l
-        )
+            | Ok l ->
+                ( s, LangBuilders.OfStrings <| l.SanitizeBackslashes() )
+            | Error l ->
+                printfn "Error while loading lang file '%s': %A" s l
+                exit(-1) )
         |> Map.ofSeq
