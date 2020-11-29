@@ -4,9 +4,9 @@ open DSharpPlus.Entities
 
 module Embed =
 
-    let newEmbed (color : int) title msg =
+    let newEmbed color title msg =
         DiscordEmbedBuilder()
-            .WithColor( DiscordColor(color) )
-            .WithAuthor(title)
+            .WithColor(color)
+            .WithTitle(title)
             .WithDescription(msg)
             .Build()
