@@ -4,44 +4,35 @@ open DSharpPlus.Entities
 
 module Messages =
 
-    let deleteMessageAsync (msg : DiscordMessage) =
+    let deleteMessageAsync (msg: DiscordMessage) =
         msg.DeleteAsync() |> Async.AwaitTask
 
-    let deleteMessage m = deleteMessageAsync m |> Async.RunSynchronously
-
-    let sendMessageAsync (ch : DiscordChannel) msg =
+    let sendMessageAsync (ch: DiscordChannel) msg =
         ch.SendMessageAsync(msg) |> Async.AwaitTask
 
-    let sendMessage c m = sendMessageAsync c m |> Async.RunSynchronously
+    let sendEmbedAsync (ch: DiscordChannel) embed =
+        ch.SendMessageAsync(null, false, embed) |> Async.AwaitTask
 
-    let modifyMessageAsync (msg : DiscordMessage) newMsg =
+    let modifyMessageAsync (msg: DiscordMessage) newMsg =
         msg.ModifyAsync(Optional newMsg) |> Async.AwaitTask
 
-    let modifyMessage m s = modifyMessageAsync m s |> Async.RunSynchronously
+    let addReactionAsync (msg: DiscordMessage) emoji =
+        msg.CreateReactionAsync emoji |> Async.AwaitTask
 
-    let addReactionAsync (msg : DiscordMessage) client (emoji : string) =
-        if emoji.[0] = ':' then
-            DiscordEmoji.FromName(client, emoji)
-        else
-            DiscordEmoji.FromGuildEmote(client, uint64 emoji)
-        |> msg.CreateReactionAsync
-        |> Async.AwaitTask
+    let removeReactionAsync (msg: DiscordMessage) emoji =
+        msg.DeleteOwnReactionAsync emoji |> Async.AwaitTask
 
-    let addReaction m c e = addReactionAsync m c e |> Async.RunSynchronously
+    let removeReactionsAsync (m: DiscordMessage) =
+        m.DeleteAllReactionsAsync() |> Async.AwaitTask
 
-    let removeReactionAsync (msg : DiscordMessage) client (emoji : string) =
-        if emoji.[0] = ':' then
-            DiscordEmoji.FromName(client, emoji)
-        else
-            DiscordEmoji.FromGuildEmote(client, uint64 emoji)
-        |> msg.DeleteOwnReactionAsync
-        |> Async.AwaitTask
+    let deleteMessage m = deleteMessageAsync m |> Async.RunSynchronously
+    let sendMessage c = sendMessageAsync c >> Async.RunSynchronously
+    let sendEmbed ch = sendEmbedAsync ch >> Async.RunSynchronously
+    let modifyMessage m = modifyMessageAsync m >> Async.RunSynchronously
+    let addReaction m = addReactionAsync m >> Async.RunSynchronously
+    let removeReaction m = removeReactionAsync m >> Async.RunSynchronously
+    let removeReactions m = removeReactionsAsync m |> Async.RunSynchronously
 
-    let removeReaction m c e = removeReactionAsync m c e |> Async.RunSynchronously
-
-    let exchangeReactions (msg : DiscordMessage) client (emoji1 : string) (emoji2 : string) =
-        [
-            removeReactionAsync msg client emoji1
-            addReactionAsync msg client emoji2
-        ]
-        |> Async.Parallel |> Async.RunSynchronously |> ignore
+    let changeReaction msg emoji =
+        removeReactions msg
+        addReaction msg emoji
