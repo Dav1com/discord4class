@@ -30,10 +30,3 @@ module Loader =
             | Error l -> failwithf "Error while loading lang file '%s': %A" s l
         )
         |> Map.ofSeq
-
-    let getLangOrDefault def (map : Map<string, LangBuilders>) key =
-        map
-        |> Map.tryFind key
-        |> function
-            | Some l -> l
-            | None -> map.[def]
