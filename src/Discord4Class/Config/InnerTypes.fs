@@ -18,8 +18,8 @@ module InnerTypes =
     type Persistence = { DbUri: string }
 
     type LogLevelConf =
-        | Off
-        | Normal
+        | Critical
+        | Informational
         | Debug
 
     type Preferences = { LogLevel: LogLevelConf }
