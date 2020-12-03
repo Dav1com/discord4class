@@ -19,28 +19,13 @@ module GuildData =
           TeacherRole: Nullable<uint64>
           DoingHeavyTask: bool }
 
-    type IdValue =
-        | TextChannelId of uint64
-        | VoiceChannelId of uint64
-        | RoleId of uint64
-
-        member this.Value =
-            match this with
-            | TextChannelId i -> i
-            | VoiceChannelId i -> i
-            | RoleId i -> i
-
-        static member ToUint64 = Option.map (fun (v: IdValue) -> v.Value)
-
-        static member GetValue (iv: IdValue) = iv.Value
-
     type GuildData =
         { Id: uint64 //GuildId
           CommandPrefix: string option
           Language: string option
-          TeachersText: IdValue option
-          ClassVoice: IdValue option
-          TeacherRole: IdValue option
+          TeachersText: uint64 option
+          ClassVoice: uint64 option
+          TeacherRole: uint64 option
           //RateLimits: RateLimits
           DoingHeavyTask: bool } // unix timestamp
 
@@ -48,30 +33,18 @@ module GuildData =
             { Id = t.Id
               CommandPrefix = Option.defaultValue null t.CommandPrefix
               Language = Option.defaultValue null t.Language
-              TeachersText =
-                Option.map IdValue.GetValue t.TeachersText
-                |> Option.toNullable
-              ClassVoice =
-                Option.map IdValue.GetValue t.ClassVoice
-                |> Option.toNullable
-              TeacherRole =
-                Option.map IdValue.GetValue t.TeacherRole
-                |> Option.toNullable
+              TeachersText = Option.toNullable t.TeachersText
+              ClassVoice = Option.toNullable t.ClassVoice
+              TeacherRole = Option.toNullable t.TeacherRole
               DoingHeavyTask = t.DoingHeavyTask }: GDDocument
 
         static member private documentToGD (inner: GDDocument) =
             { Id = inner.Id
               CommandPrefix = Option.ofObj inner.CommandPrefix
               Language = Option.ofObj inner.Language
-              TeachersText =
-                Option.ofNullable (inner.TeachersText)
-                |> Option.map TextChannelId
-              ClassVoice =
-                Option.ofNullable (inner.ClassVoice)
-                |> Option.map VoiceChannelId
-              TeacherRole =
-                Option.ofNullable inner.TeacherRole
-                |> Option.map RoleId
+              TeachersText = Option.ofNullable inner.TeachersText
+              ClassVoice = Option.ofNullable inner.ClassVoice
+              TeacherRole = Option.ofNullable inner.TeacherRole
               DoingHeavyTask = inner.DoingHeavyTask }
 
         static member Filter = Builders<GDDocument>.Filter
@@ -102,18 +75,6 @@ module GuildData =
                 fun v -> GD.Update.Set((fun gd -> gd.ClassVoice), v))
               ("teacher-role",
                 fun v -> GD.Update.Set((fun gd -> gd.TeacherRole), v)) ]
-            |> Map.ofList
-
-        static member configExtractors =
-            [ ("teachers-text", fun gd -> gd.TeachersText)
-              ("class-voice", fun gd -> gd.ClassVoice)
-              ("teacher-role", fun gd -> gd.TeacherRole) ]
-            |> Map.ofList
-
-        static member configIdTypes =
-            [ ("teachers-text", TextChannelId 0UL)
-              ("class-voice", VoiceChannelId 0UL)
-              ("teacher-role", RoleId 0UL) ]
             |> Map.ofList
 
         static member configInserts =

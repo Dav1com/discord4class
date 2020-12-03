@@ -168,9 +168,9 @@ module Loader =
               LangName = langName
               CommandPrefix = prefix
               IsConfigOnDb = true
-              TeachersText = IdValue.ToUint64 g.TeachersText
-              ClassVoice = IdValue.ToUint64 g.ClassVoice
-              TeacherRole = IdValue.ToUint64 g.TeacherRole
+              TeachersText =  g.TeachersText
+              ClassVoice = g.ClassVoice
+              TeacherRole = g.TeacherRole
               DoingHeavyTask = g.DoingHeavyTask }
         | None ->
             { Lang = c.App.AllLangs.[c.Bot.DefaultLang]
