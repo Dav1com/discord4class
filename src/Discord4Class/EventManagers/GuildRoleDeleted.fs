@@ -1,25 +1,22 @@
 namespace Discord4Class.EventManagers
 
-open System.Threading.Tasks
+open System
 open DSharpPlus.EventArgs
-open Discord4Class.Repositories.GuildConfiguration
+open Discord4Class.Repositories.GuildData
 open Discord4Class.Config.Types
 
-module GuildRoleDeletes =
+module GuildRoleDeleted =
 
-    let exec config client (e : GuildRoleDeleteEventArgs) =
-        async {
-            GC.Filter.And [
-                GC.Filter.Eq((fun gc -> gc._id), e.Guild.Id)
-                GC.Filter.Eq((fun gc -> gc.TeacherRole), Some e.Role.Id)
-            ]
-            |> GC.GetOne config.App.Db
-            |> Async.RunSynchronously
-            |> function
-            | Some {TeacherRole = Some teacherRole} ->
-                let filter = GC.Filter.And [GC.Filter.Eq((fun gc -> gc._id), e.Guild.Id)]
-                GC.Update.Set((fun gc -> gc.TeacherRole), None)
-                |> GC.UpdateOne config.App.Db filter
+    let main config client (e: GuildRoleDeleteEventArgs) = async {
+        GD.Filter.And
+            [ GD.Filter.Eq((fun gd -> gd.Id), e.Guild.Id)
+              GD.Filter.Eq((fun gd -> gd.TeacherRole), Nullable<_> e.Role.Id) ]
+        |> GD.Operation.FindOne config.App.Db
+        |> Async.RunSynchronously
+        |> function
+            | Some { TeacherRole = Some _ } ->
+                GD.Update.Set((fun gd -> gd.TeacherRole), Nullable<_>())
+                |> GD.Operation.UpdateOneById config.App.Db e.Guild.Id
                 |> Async.RunSynchronously |> ignore
             | _ -> ()
-        } |> Async.StartAsTask :> Task
+    }
