@@ -15,16 +15,16 @@ module Permission =
         |> Option.isSome
 
     let minPermsText =
-        Permissions.AccessChannels
-      + Permissions.SendMessages
-      + Permissions.ReadMessageHistory
-      + Permissions.AttachFiles
-      + Permissions.AddReactions
-      + Permissions.EmbedLinks
+          Permissions.AccessChannels
+        + Permissions.SendMessages
+        + Permissions.ReadMessageHistory
+        + Permissions.AttachFiles
+        + Permissions.AddReactions
+        + Permissions.EmbedLinks
 
     let minPermsVoice =
-        Permissions.AccessChannels
-      + Permissions.UseVoice
-      + Permissions.Speak
-      + Permissions.Stream
-      + Permissions.UseVoiceDetection
+          Permissions.AccessChannels
+        + Permissions.UseVoice
+        + Permissions.Speak
+        + Permissions.Stream
+        + Permissions.UseVoiceDetection
