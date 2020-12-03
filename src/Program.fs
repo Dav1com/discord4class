@@ -6,18 +6,20 @@ open Discord4Class.Bot
 
 [<EntryPoint>]
 let main argv =
-    let config = loadConfiguration IniPath
+    let config =
+        match loadConfiguration IniPath with
+        | Ok c -> c
+        | Error e -> e.Fail()
 
     getParser AppName
     |> parseArgv argv
-    |> execArgs config.App
+    |> execArgs
     >>= switch (
         getAllArgs
         >> List.fold overwriteConfig config
         >> runBot
-        >> Async.RunSynchronously
-    )
-    |> onError (eprintf "%s")
+        >> Async.RunSynchronously )
+    |> Result.mapError (eprintf "%s")
     |> ignore
 
     0
