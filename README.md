@@ -48,11 +48,12 @@ though DM.
 [Join the support server]!
 
 ## Self Hosting
-If you are using Windows or Linux, I provide binaries for most versions, but
-I only tested then on Windows 10 x64, and CentOS 8, you can download them from
-[Releases]
+If you are using Windows or Linux, I provide binaries (you still need to have
+the .NET 5.0 Runtime installed), you can download them from [Releases]
 
 Or you can [Build](#building) the project yourself
+
+Once you have the binaries, read [Running](#running)
 
 ## Building
 ### Requirements
@@ -93,22 +94,9 @@ cd bin/Debug/net5.0
 If you what the binary to run on machines without .NET 5.0 SDK installed, change
 `--self-contained false` to `--self-cotained true`
 ```
-dotnet publish -c Release -r {plataform} -P:PublishSingleFile=true -o ./bin/output --self-contained false
+dotnet publish -c Release -o ./bin/output --self-contained false
 cd ./bin/output
 ```
-`{plataform}` must be replace with one of the following codes, depending on
-wich plataform the bot will run:
-| Platform Name | Plataform code |
-| ------------- | -------------- |
-| Windows x64 | win-x64 |
-| Windows x32/x86 | win-x86 |
-| Windows ARM (most Windows tablets) | win-arm |
-| macOS | osx-x64 |
-| Most Linux Distros | linux-x64 |
-| Linux ARM (Raspberry Pi Model 2+) | linux-arm |
-| Linux ARM 64bit (Raspberry Pi Model 3+) | linux-arm64 |
-
-For a more extensive list of platform IDs, visit [.NET Core RID Catalog](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog)
 
 ### MongoDB Setup
 #### Instalation and Running
