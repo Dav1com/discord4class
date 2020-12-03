@@ -24,34 +24,34 @@ module Args =
                | Version -> "Shows the program version."
 
     let getParser name =
-        let errorHandler = ProcessExiter(colorizer = function ErrorCode.HelpText -> None | _ -> Some ConsoleColor.Red)
-        ArgumentParser.Create<Arguments>(programName = name, errorHandler = errorHandler)
+        let errorHandler =
+            ProcessExiter(colorizer = function
+                | ErrorCode.HelpText -> None
+                | _ -> Some ConsoleColor.Red )
+        ArgumentParser.Create<Arguments>(
+            programName = name,
+            errorHandler = errorHandler )
 
-    let parseArgv argv (parser : ArgumentParser<_>) =
-        parser.Parse argv
+    let parseArgv argv (parser: ArgumentParser<_>) = parser.Parse argv
 
-    let getAllArgs (result : ParseResults<_>) =
-        result.GetAllResults()
+    let getAllArgs (result: ParseResults<_>) = result.GetAllResults()
 
-    let execArgs (appConf : AppConfig) (args : ParseResults<_>) =
-        match args with
-        | v when args.Contains Version ->
+    let execArgs (args: ParseResults<_>) =
+        if args.Contains Version then
             printf "%s version v%s" AppName AppVersion
             Error ""
-        | _ -> Ok args
+        else Ok args
 
-    let overwriteConfig conf value =
+    let overwriteConfig (iConf: InnerTypes.IniConfig) value =
         match value with
         | LogLevel l ->
-            { conf with
+            { iConf with
                 Preferences =
-                    { conf.Preferences with
-                        LogLevel = l }
-            }
+                    { iConf.Preferences with
+                        LogLevel = l } }
         | Token t ->
-            { conf with
+            { iConf with
                 Bot =
-                    { conf.Bot with
-                        BotToken = t }
-            }
-        | _ -> conf
+                    { iConf.Bot with
+                        BotToken = t } }
+        | _ -> iConf
