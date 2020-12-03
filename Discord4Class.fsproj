@@ -15,6 +15,9 @@
     <Compile Include="src/Discord4Class/Repositories/*.fs" />
     <Compile Include="src/Discord4Class/Config/Types.fs" />
     <Compile Include="src/Discord4Class/Config/Loader.fs" />
+    <Compile Include="src/Discord4Class/CommandsManager/Types.fs" />
+    <Compile Include="src/Discord4Class/CommandsManager/Exception.fs" />
+    <Compile Include="src/Discord4Class/CommandsManager/Manager.fs" />
     <Compile Include="src/Discord4Class/Commands/TeamsInternals/Predicates.fs" />
     <Compile Include="src/Discord4Class/Commands/TeamsInternals/Results.fs" />
     <Compile Include="src/Discord4Class/Commands/TeamsInternals/Students.fs" />
@@ -37,9 +40,8 @@
     <None Include="CHANGELOG.md" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="4.0.0-nightly-00760" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00760" />
-    <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00760" />
+    <PackageReference Include="DSharpPlus" Version="4.0.0-rc1" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-rc1" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Ini" Version="5.0.0" />
     <PackageReference Include="MongoDB.Driver" Version="2.11.4" />
