@@ -2,66 +2,66 @@ namespace Discord4Class.Commands
 
 open DSharpPlus.Entities
 open DSharpPlus.EventArgs
-open Discord4Class.Constants
 open Discord4Class.Helpers.Permission
 open Discord4Class.Helpers.Messages
 open Discord4Class.Config.Types
 open Discord4Class.Repositories.MutedChannels
+open Discord4Class.CommandsManager
 
 module Mute =
 
     [<Literal>]
-    let MaxMutedChannels = 10
+    let private maxMutedChannels = 10
 
-    let private setMuteEveryone (guild : DiscordGuild) (channel : DiscordChannel) mute =
-        guild.Members
-        |> Seq.filter (fun memb ->
-            match memb.Value.VoiceState with
-            | null -> false
-            | vs -> (vs.Channel.Id = channel.Id)
-        )
-        |> Seq.map (fun memb -> memb.Value.SetMuteAsync(mute) |> Async.AwaitTask )
+    let private setMuteEveryone teacherRole (guild: DiscordGuild) (channel : DiscordChannel) mute =
+        channel.Users
+        |> Seq.filter (checkIsTeacher teacherRole >> not)
+        |> Seq.map (fun memb -> memb.SetMuteAsync(mute) |> Async.AwaitTask )
         |> Async.Parallel |> Async.RunSynchronously |> ignore
 
-    let exec app guild client _args (e : MessageCreateEventArgs) = async {
-        let memb = e.Guild.Members.[e.Author.Id]
-        if guild.TeacherRole.IsNone then
-            guild.Lang.ErrorRoleNull "teacher-role"
-                guild.CommandPrefix "teacher-role"
+    let main app guild client _args (memb: DiscordMember) (e: MessageCreateEventArgs) = async {
+        match memb.VoiceState with
+        | null ->
+            "Not in channel"
             |> sendMessage e.Channel |> ignore
-        elif checkIsTeacher memb guild.TeacherRole.Value then
-            match memb.VoiceState with
-            | null ->
-                "Not in channel"
-                |> sendMessage e.Channel |> ignore
-            | v ->
-                let channelId = v.Channel.Id
-                let filter = MC.Filter.And [MC.Filter.Eq((fun mc -> mc._id), e.Guild.Id)]
-                filter
-                |> MC.GetOne app.Db
-                |> Async.RunSynchronously
+        | v ->
+            let channelId = v.Channel.Id
+            MC.Operation.FindById app.Db e.Guild.Id
+            |> Async.RunSynchronously
+            |> function
+            | Some { Muted = muted } ->
+                muted
+                |> List.contains v.Channel.Id
                 |> function
-                | Some mc ->
-                    mc.Muted
-                    |> List.contains v.Channel.Id
-                    |> function
-                    | true ->
-                        MC.Pull app.Db e.Guild.Id channelId
-                        |> Async.RunSynchronously |> ignore
-                        addReaction e.Message client app.Emojis.Mute
-                    | false when mc.Muted.Length < MaxMutedChannels ->
-                        MC.Push app.Db e.Guild.Id channelId
-                        |> Async.RunSynchronously |> ignore
-                        addReaction e.Message client app.Emojis.UnMute
-                    | false ->
-                        "Too many muted channels"
-                        |> sendMessage e.Channel |> ignore
-                | None ->
-                    MC.Insert app.Db {
-                        _id = e.Guild.Id
-                        Muted = [channelId]
-                    }
-                    |> Async.RunSynchronously
-                    "Insert Success"
+                | true ->
+                    MC.Pull app.Db e.Guild.Id channelId
+                    |> Async.RunSynchronously |> ignore
+                    addReaction e.Message app.Emojis.UnMute
+                | false when muted.Length < maxMutedChannels ->
+                    MC.Push app.Db e.Guild.Id channelId
+                    |> Async.RunSynchronously |> ignore
+                    addReaction e.Message app.Emojis.Mute
+                | false ->
+                    "Too many muted channels"
                     |> sendMessage e.Channel |> ignore
+            | None ->
+                MC.Operation.InsertOne app.Db
+                    { Id = e.Guild.Id
+                      Muted = [ channelId ] }
+                |> Async.RunSynchronously
+                "Insert Success"
+                |> sendMessage e.Channel |> ignore
     }
+
+    let command =
+        { BaseCommand with
+            Names = [ "mute" ]
+            Description = fun gc ->
+                gc.Lang.MuteDescription maxMutedChannels
+                    gc.CommandPrefix gc.Lang.MuteUsage
+            Permissions = Teacher
+            IsHeavy = true
+            RateLimits = [
+                { Allowed = 5uy
+                  Interval = 30UL} ]
+            Function = main }

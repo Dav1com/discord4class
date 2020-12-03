@@ -1,69 +1,69 @@
 namespace Discord4Class.Commands
 
 open System
-open System.Threading.Tasks
 open DSharpPlus
 open DSharpPlus.Entities
 open DSharpPlus.EventArgs
 open DSharpPlus.Interactivity
+open DSharpPlus.Interactivity.Extensions
 open Discord4Class.Helpers.Messages
-open Discord4Class.Helpers.Permission
 open Discord4Class.Config.Types
-open Discord4Class.Repositories.GuildConfiguration
+open Discord4Class.Repositories.GuildData
 open Discord4Class.Repositories.MutedChannels
+open Discord4Class.Repositories.Questions
+open Discord4Class.CommandsManager
 
 module Destroy =
 
     [<Literal>]
-    let ConfirmTimeout = 30.0 //seconds
-    [<Literal>]
-    let RequiredPerms = Permissions.Administrator
+    let private confirmTimeout = 30.0 //seconds
 
-    let private predicate guild (e : DiscordMessage) = Func<DiscordMessage, bool>(fun e2 ->
-        e.ChannelId = e2.ChannelId && e.Author.Id = e2.Author.Id && (
-            e2.Content.ToLower() = guild.Lang.ConfirmationYesResponse.ToLower() ||
-            e2.Content.ToLower() = guild.Lang.ConfirmationNoResponse.ToLower()
-        )
-    )
+    let private predicate guild (e: DiscordMessage) = Func<DiscordMessage, bool>(fun e2 ->
+        e.ChannelId = e2.ChannelId && e.Author.Id = e2.Author.Id &&
+            ( e2.Content.ToLower() = guild.Lang.Yes ||
+              e2.Content.ToLower() = guild.Lang.No ) )
 
-    let private afterConfirmation app guild client (confirmMsg : DiscordMessage) (e : MessageCreateEventArgs) = Action<Task<InteractivityResult<DiscordMessage>>>(fun r ->
-        let result = r.Result
+    let private afterConfirmation app guild client (confirmMsg: DiscordMessage) (e: MessageCreateEventArgs) (result: InteractivityResult<DiscordMessage>) =
         if result.TimedOut then
             guild.Lang.ConfirmationTimeoutMessage
             |> modifyMessage confirmMsg |> ignore
+        elif result.Result.Content.ToLower() = guild.Lang.No then
+            guild.Lang.ConfirmationCancellation
+            |> sendMessage e.Channel |> ignore
         else
-            if result.Result.Content.ToLower() = guild.Lang.ConfirmationNoResponse.ToLower() then
-                guild.Lang.ConfirmationCancellation
-                |> sendMessage e.Channel |> ignore
-            else
-                [
-                    addReactionAsync e.Message client app.Emojis.Doing
-                    deleteMessageAsync confirmMsg
-                    deleteMessageAsync result.Result
-                ] |> Async.Parallel |> Async.RunSynchronously |> ignore
-                [
-                    GC.Filter.And [GC.Filter.Eq((fun gc -> gc._id), e.Guild.Id)]
-                    |> GC.DeleteOne app.Db
-                    MC.Filter.And [MC.Filter.Eq((fun mc -> mc._id), e.Guild.Id)]
-                    |> MC.DeleteOne app.Db
-                ]
-                |> Async.Parallel |> Async.RunSynchronously |> ignore
+            [ addReactionAsync e.Message app.Emojis.Doing
+              deleteMessageAsync confirmMsg
+              deleteMessageAsync result.Result ]
+            |> Async.Parallel |> Async.RunSynchronously |> ignore
+            [ GD.Operation.DeleteOneById app.Db e.Guild.Id
+              MC.Operation.DeleteOneById app.Db e.Guild.Id
+              Qs.Operation.DeleteOneById app.Db e.Guild.Id ]
+            |> Async.Parallel |> Async.RunSynchronously |> ignore
 
-                exchangeReactions e.Message client app.Emojis.Doing app.Emojis.Yes
+            changeReaction e.Message app.Emojis.Yes
 
-    )
+    let main app guild (client: DiscordClient) _ memb (e: MessageCreateEventArgs) = async {
+        let confirmMsg =
+            guild.Lang.DestroyConfirmationMsg
+                guild.Lang.Yes
+                guild.Lang.No
+            |> sendMessage e.Channel
 
-    let exec app guild (client : DiscordClient) _ (e : MessageCreateEventArgs) = async {
-        if checkPermissions e RequiredPerms then
-            let confirmMsg =
-                guild.Lang.DestroyConfirmationMsg
-                    guild.Lang.ConfirmationYesResponse
-                    guild.Lang.ConfirmationNoResponse
-                |> sendMessage e.Channel
-
-            let inter = client.GetInteractivity()
-            inter.WaitForMessageAsync(
-                    predicate guild e.Message, Nullable (TimeSpan.FromSeconds ConfirmTimeout))
-                .ContinueWith( afterConfirmation app guild client confirmMsg e)
-            |> ignore
+        let inter = client.GetInteractivity()
+        inter.WaitForMessageAsync(
+            predicate guild e.Message, Nullable (TimeSpan.FromSeconds confirmTimeout))
+        |> Async.AwaitTask |> Async.RunSynchronously
+        |> afterConfirmation app guild client confirmMsg e
+        |> ignore
     }
+
+    let command =
+        { BaseCommand with
+            Names = [ "destroy" ]
+            Description = fun gc ->
+                gc.Lang.DestroyDescription gc.CommandPrefix gc.Lang.DestroyUsage
+            Permissions = GuildPrivileged
+            RateLimits = [
+                { Allowed = 1uy
+                  Interval = 30UL } ]
+            Function = main }

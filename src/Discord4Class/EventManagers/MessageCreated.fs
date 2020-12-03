@@ -1,13 +1,15 @@
 namespace Discord4Class.EventManagers
 
-open System.Threading.Tasks
+open System
 open DSharpPlus
 open DSharpPlus.EventArgs
+open Discord4Class.Constants
+open Discord4Class.Helpers.Railway
+open Discord4Class.Helpers.Messages
 open Discord4Class.Config.Types
 open Discord4Class.Config.Loader
-open Discord4Class.Commands.Welcome
-open Discord4Class.Commands.Exception
-open Discord4Class.Commands.DmResponse
+open Discord4Class.CommandsManager.Exception
+open Discord4Class.Commands.Help
 open Discord4Class.BotCommands
 
 module MessageCreated =
@@ -18,80 +20,63 @@ module MessageCreated =
         | NoCmd
 
     type private Command =
-      { Name : string
-        Args : string }
+        { Name : string
+          Args : string }
 
-    let private detectCallType config guildConf (client : DiscordClient) (e : MessageCreateEventArgs) =
-        if e.Message.Content.StartsWith guildConf.CommandPrefix then
-            ByPrefix
-        elif config.Bot.CommandByMention && e.Message.Content.StartsWith (client.CurrentUser.Mention.Insert(2, "!")) then
+    let private detectCallType config guildConf (client: DiscordClient) (msg: string) =
+        if msg.StartsWith guildConf.CommandPrefix then ByPrefix
+        elif config.Bot.CommandByMention &&
+             msg.StartsWith (client.CurrentUser.Mention.Insert(2, "!")) then
             ByMention
-        else
-            NoCmd
+        else NoCmd
 
-    let private getCommand config guildConf (client : DiscordClient) (e : MessageCreateEventArgs) = function
+    let private getCommandStr guildConf (client: DiscordClient) (msg: string) = function
         | ByPrefix ->
-            (e.Message.Content.Substring guildConf.CommandPrefix.Length)
-                .Trim()
-            |> fun s ->
-                s.IndexOf " "
-                |> function
-                    | -1 ->
-                        {
-                            Name = s
-                            Args = ""
-                        }
-                    | i ->
-                        {
-                            Name = s.[..i-1].ToLower()
-                            Args = s.[i+1..]
-                        }
+            (msg.Substring guildConf.CommandPrefix.Length)
+                .TrimStart()
             |> Some
         | ByMention ->
-            (e.Message.Content.Substring (client.CurrentUser.Mention.Length+1))
-                .Trim()
-            |> fun s ->
-                s.IndexOf " "
-                |> function
-                    | -1 ->
-                        {
-                            Name = s
-                            Args = ""
-                        }
-                    | i ->
-                        {
-                            Name = s.[..i-1].ToLower()
-                            Args = s.[i+1..]
-                        }
+            (msg.Substring (client.CurrentUser.Mention.Length+1))
+                .TrimStart()
             |> Some
         | NoCmd -> None
 
-    let exec config client (e : MessageCreateEventArgs) =
-        async {
-            try
-                if e.Channel.IsPrivate then
-                    sendDmResponse config.App config.Bot.DefaultLang e
-                elif not e.Author.IsCurrent then
-                    let guildConf = loadGuildConfiguration config config.App.Db e.Guild.Id
+    let private sendDmResponse app defLang (e: MessageCreateEventArgs) = async {
+        app.AllLangs.[defLang].ResponseToDm AppName app.DocsURL
+        |> sendMessage e.Channel |> ignore
+    }
 
-                    detectCallType config guildConf client e
-                    |> getCommand config guildConf client e
-                    |> function
-                        | Some cmd ->
-                            cmd.Name
-                            |> BotCommands.TryFind
-                            |> function
-                                | Some f -> f config.App guildConf client cmd.Args e
-                                | None -> cmdNotFound cmd.Name guildConf e
-                        | None ->
-                            async.Zero()
-                elif e.Message.Content.Length = 0 then
-                    sendWelcome config.App config.Bot.DefaultLang config.Bot.CommandPrefix client e
-                else
-                    async.Zero()
-                |> Async.RunSynchronously
-            with
-                | ex ->
-                    cmdErrorUnknown config.App config.Bot.DefaultLang e ex
-                    |> Async.RunSynchronously
-        } |> Async.StartAsTask :> Task
+    let main config client (e: MessageCreateEventArgs) = async {
+        try
+            if e.Channel.IsPrivate && not e.Author.IsBot then
+                if checkDmRateLimits config.App e.Author.Id then
+                    dmHelp Commands config.App config.Bot.CommandPrefix
+                        config.App.AllLangs.[config.Bot.DefaultLang] e.Channel
+                        e.Author
+            elif not (e.Author.IsBot || e.Author.IsSystem = Nullable true) then
+                let guildConf = loadGuildConfiguration config config.App.Db e.Guild.Id
+                detectCallType config guildConf client
+                    e.Message.Content
+                |> getCommandStr guildConf client e.Message.Content
+                |> function
+                    | Some cmdStr ->
+                        let memb =
+                            e.Guild.GetMemberAsync e.Author.Id
+                            |> Async.AwaitTask |> Async.RunSynchronously
+                        Commands.RunCommandAsync config.App guildConf
+                            client memb e cmdStr
+                        |> Result.mapError (fun err ->
+                            match err.ToMessage guildConf with
+                            | Some msg ->
+                                sendMessageAsync e.Channel msg
+                                |> Async.Ignore
+                            | None -> async.Zero() )
+                        |> getResult
+                        |> Async.RunSynchronously
+                    | None -> ()
+        with
+        | ex ->
+            cmdErrorUnknown config.App.AllLangs.[config.Bot.DefaultLang]
+                e ex
+            |> Async.RunSynchronously
+    }

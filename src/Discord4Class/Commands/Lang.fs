@@ -1,35 +1,42 @@
 namespace Discord4Class.Commands
 
 open System.Globalization
-open DSharpPlus
 open DSharpPlus.EventArgs
 open Discord4Class.Helpers.Messages
-open Discord4Class.Helpers.Permission
-open Discord4Class.Repositories.GuildConfiguration
+open Discord4Class.Repositories.GuildData
 open Discord4Class.Config.Types
+open Discord4Class.CommandsManager
 
 module Lang =
 
-    [<Literal>]
-    let RequiredPerms = Permissions.Administrator
-
-    let exec app guild _ (newLang : string) (e : MessageCreateEventArgs) = async {
-        if checkPermissions e RequiredPerms then
+    let main app guild _ (args: string list) memb (e: MessageCreateEventArgs) = async {
+        match args with
+        | newLang :: _ ->
             newLang.ToLower()
             |> app.AllLangs.TryFind
             |> function
                 | Some l ->
-                    { GC.Base with
-                        _id = e.Guild.Id
-                        Language = Some newLang }
-                    |> GC.InsertUpdate app.Db guild.IsConfigOnDb
+                    GD.Update.Set((fun gd -> gd.Language), newLang)
+                    |> GD.InsertOrUpdate app.Db guild.IsConfigOnDb
+                        { GD.Base with
+                            Id = e.Guild.Id
+                            Language = Some newLang }
                     |> Async.RunSynchronously
 
                     l.LangSuccess (CultureInfo newLang).NativeName
-                | None ->
-                    if newLang = "" then
-                        guild.Lang.LangMissingArg guild.CommandPrefix
-                    else
-                        guild.Lang.LangNotFound
-            |> sendMessage e.Channel |> ignore
+                | None -> guild.Lang.LangNotFound
+        | _ -> guild.Lang.LangActualValue (CultureInfo guild.LangName).NativeName
+        |> sendMessage e.Channel |> ignore
     }
+
+    let command =
+        { BaseCommand with
+            Names = [ "lang" ]
+            Description = fun gc ->
+                gc.Lang.LangDescription gc.CommandPrefix gc.Lang.LangUsage
+            Permissions = GuildPrivileged
+            MaxArgs = 1
+            RateLimits = [
+                { Allowed = 3uy
+                  Interval = 10UL } ]
+            Function = main }

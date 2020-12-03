@@ -1,24 +1,31 @@
 namespace Discord4Class.Commands.TeamsInternals
 
+open DSharpPlus
 open DSharpPlus.Entities
 open Discord4Class.Commands.TeamsInternals.Predicates
 
 [<AutoOpen>]
 module Delete =
-    let deleteChannels config (guild : DiscordGuild) =
-        guild.Channels
-        |> Seq.map (fun kv -> kv.Value)
-        |> Seq.filter (isTeamChannel config)
-        |> Seq.map (fun ch ->
-            ch.DeleteAsync()
-            |> Async.AwaitTask
-        )
-        |> Async.Parallel |> Async.RunSynchronously |> ignore
 
-    let deleteRoles (roles : DiscordRole array) =
+    let deleteChannels config (guild: DiscordGuild) =
+        guild.GetChannelsAsync()
+        |> Async.AwaitTask |> Async.RunSynchronously
+        |> Seq.filter (isTeamChannel config)
+        |> Seq.sortBy (fun ch ->
+            match ch.Type with
+            | ChannelType.Category -> 1
+            | _ -> 0 )
+        |> Seq.map (fun ch -> async {
+            try
+                ch.DeleteAsync()
+                |> Async.AwaitTask |> Async.RunSynchronously
+            with | _ -> () } )
+        |> Async.Sequential |> Async.RunSynchronously |> ignore
+
+    let deleteRoles (roles: Map<_,DiscordRole>) =
         roles
-        |> Array.map (fun role ->
+        |> Map.toSeq
+        |> Seq.map (fun (_, role) ->
             role.DeleteAsync()
-            |> Async.AwaitTask
-        )
+            |> Async.AwaitTask )
         |> Async.Parallel |> Async.RunSynchronously |> ignore

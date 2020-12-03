@@ -1,64 +1,54 @@
 namespace Discord4Class.Commands.TeamsInternals
 
 open DSharpPlus.Entities
+open Discord4Class.Helpers.Railway
 open Discord4Class.Commands.TeamsInternals.Predicates
 open Discord4Class.Commands.TeamsInternals.Results
 
 [<AutoOpen>]
 module ExistingTeams =
-    let getTeamRoles config (e : DiscordGuild) =
-        e.Roles
-        |> Seq.map (fun kv -> kv.Value)
-        |> Seq.filter (isTeamRole config)
-        |> Seq.distinctBy (fun role -> role.Name)
-        |> Array.ofSeq
 
-    let getTeamMembers config (e : DiscordGuild) roles =
-        e.Members
-        |> Array.ofSeq
-        |> Array.fold (fun acc kv ->
-            let memb = kv.Value
-            memb.Roles
-            |> Array.ofSeq
-            |> Array.filter (isTeamRole config)
-            |> function
-                | [||] -> (UserHasNoGroup)::acc
-                | [|role|] ->
-                    roles
-                    |> Array.tryFind ((=) role)
-                    |> function
-                        | Some r ->
-                            acc
-                            |> List.tryFindIndex (function
-                                | Ok (name, _) when name = role.Name -> true
-                                | _ -> false
-                            )
-                            |> function
-                                | Some i ->
-                                    acc
-                                    |> List.mapi (fun j result ->
-                                        match j with
-                                        | j when j = i ->
-                                            match result with
-                                            | Ok (name, arr) ->
-                                                arr
-                                                |> Array.append [|memb|]
-                                                |> fun x -> Ok (name, x)
-                                            | x -> x
-                                        | _ -> result
-                                    )
-                                | None ->
-                                    (Ok (role.Name, [|memb|]))::acc
-                        | None -> (UserHasDuplicateTeam memb.Mention)::acc
-                | _ -> (UserHasMultipleTeams memb.Mention)::acc
-        ) []
+    let getTeamRoles config (guild: DiscordGuild) =
+        guild.Roles
+        |> Seq.choose (fun kv ->
+            if isTeamRole config kv.Value then Some (kv.Value.Name, kv.Value)
+            else None )
+        |> Seq.distinctBy (fun (name,_) -> name)
+        |> Map.ofSeq
 
-    let getTeamChannels config chType (guild : DiscordGuild) =
+    let getTeamsMembers config (guild: DiscordGuild) ignoreErrors singleAddErrored =
+        guild.Members
+        |> Seq.fold (fun res kv ->
+            res
+            >>= fun acc ->
+                let memb = kv.Value
+                memb.Roles
+                |> List.ofSeq
+                |> List.filter (isTeamRole config)
+                |> function
+                    | [] -> Ok acc
+                    | membRoles when ignoreErrors || membRoles.Length = 1 ->
+                        membRoles
+                        |> List.fold (fun (acc2: Map<string,DiscordMember list>) role ->
+                            let name = role.Name
+                            match Map.tryFind name acc with
+                            | Some membs -> acc2.Add(name, memb :: membs)
+                            | None -> acc2.Add(name, [memb]) ) acc
+                        |> Ok
+                    | membRoles when singleAddErrored ->
+                        let name = membRoles.[0].Name
+                        match Map.tryFind name acc with
+                        | Some membs -> acc.Add(name, memb :: membs)
+                        | None -> acc.Add(name, [memb])
+                        |> Ok
+                    | _ -> Error (UserHasMultipleTeams memb) )
+            (Ok Map.empty)
+
+    let getTeamsChannels config chType (guild: DiscordGuild) =
         guild.Channels
         |> Seq.choose (fun kv ->
             if kv.Value.Type = chType && isTeamChannel config kv.Value then
                 Some (kv.Value.Name, kv.Value)
             else
-                None
-        )
+                None )
         |> Map.ofSeq

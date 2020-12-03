@@ -8,87 +8,72 @@ open Discord4Class.Config.Types
 
 [<AutoOpen>]
 module CreateTeams =
-    let makeTeams bySize guild (students : DiscordMember array) num =
-        let studentsNum = students.Length
-        let membersPerTeam =
-            if bySize then num
-            else studentsNum / num
-        let teamsCount =
-            if bySize then
-                (studentsNum / num) +
-                if studentsNum % num = 0 then 0
-                else 1
-            else num
-        let mutable group = 1
-        let mutable count = 0
-        randomIndexes(studentsNum)
-        |> Array.map (fun i -> students.[i])
-        |> Array.groupBy (fun _ ->
-            if group >= teamsCount then
-                guild.Lang.TeamsTemplate group
-            else
-                if count < membersPerTeam then
-                    count <- count + 1
-                    guild.Lang.TeamsTemplate group
-                else
-                    count <- 1
-                    group <- group+1
-                    guild.Lang.TeamsTemplate group
-        )
 
-    let createRoles (guild : DiscordGuild) (teams : (string * DiscordMember array) array) =
+    let private extractTeamNumber guild (name: string) =
+        if guild.Lang.TeamsNumberIsRight = "1" then
+            let pos = name.LastIndexOf ' '
+            name.[pos+1..]
+        else
+            let pos = name.IndexOf ' '
+            name.[..pos-1]
+        |> int
+
+    let makeTeams guild (students: DiscordMember[]) teamsCount =
+        randomPermute students
+        |> Array.splitInto teamsCount
+        |> Array.mapi (fun i membArr ->
+            (guild.Lang.TeamsTemplate (i + 1), List.ofArray membArr) )
+        |> Map.ofArray
+
+    let createRoles (guild: DiscordGuild) (teams: Map<string, DiscordMember list>) =
         teams
-        |> Array.map (fun (name, team) -> async {
+        |> Map.toSeq
+        |> Seq.map (fun (name, team) -> async {
             let! role =
-                guild.CreateRoleAsync(name)
+                guild.CreateRoleAsync name
                 |> Async.AwaitTask
             team
-            |> Array.map (fun memb ->
+            |> List.map (fun memb ->
                 memb.GrantRoleAsync role
-                |> Async.AwaitTask
-            )
+                |> Async.AwaitTask )
             |> Async.Parallel |> Async.RunSynchronously |> ignore
-            return role
-        })
+            return (name, role) } )
         |> Async.Parallel |> Async.RunSynchronously
+        |> Map.ofSeq
 
-    let createChannels (teacherRole : DiscordRole) (guild : DiscordGuild) (teams : (string * DiscordMember array) array) (roles : DiscordRole array) =
+    let createChannels config (teacherRole: DiscordRole) (guild: DiscordGuild) (teams: Map<string, DiscordMember list>) (roles: Map<string,DiscordRole>) =
         teams
-        |> Array.mapi (fun i (name, team) -> async {
+        |> Map.toSeq
+        |> Seq.map (fun (name, team) -> async {
             let! category =
-                guild.CreateChannelCategoryAsync(name)
+                guild.CreateChannelCategoryAsync name
                 |> Async.AwaitTask
-            let role = roles.[i]
-            [
-                guild.CreateChannelAsync(
-                    name, ChannelType.Text, category,
-                    overwrites = [
-                        DiscordOverwriteBuilder()
-                            .For(guild.EveryoneRole)
-                            .Deny(Permissions.All)
-                        DiscordOverwriteBuilder()
-                            .For(role)
-                            .Allow(minPermsText)
-                        DiscordOverwriteBuilder()
-                            .For(teacherRole)
-                            .Allow(Permissions.All)
-                    ]
-                ) |> Async.AwaitTask |> Async.Ignore
-                guild.CreateChannelAsync(
-                    name, ChannelType.Voice, category,
-                    overwrites = [
-                        DiscordOverwriteBuilder()
-                            .For(guild.EveryoneRole)
-                            .Deny(Permissions.All)
-                        DiscordOverwriteBuilder()
-                            .For(role)
-                            .Allow(minPermsVoice)
-                        DiscordOverwriteBuilder()
-                            .For(teacherRole)
-                            .Allow(Permissions.All)
-                    ]
-                ) |> Async.AwaitTask |> Async.Ignore
-            ]
-            |> Async.Parallel |> Async.RunSynchronously |> ignore
-        })
+            let role = roles.[name]
+            [ guild.CreateChannelAsync(
+                name, ChannelType.Text, category,
+                overwrites =
+                    [ DiscordOverwriteBuilder()
+                        .For(guild.EveryoneRole)
+                        .Deny(Permissions.All)
+                      DiscordOverwriteBuilder()
+                        .For(role)
+                        .Allow(minPermsText)
+                      DiscordOverwriteBuilder()
+                        .For(teacherRole)
+                        .Allow(Permissions.All) ] )
+              |> Async.AwaitTask |> Async.Ignore
+              guild.CreateChannelAsync(
+                name, ChannelType.Voice, category,
+                overwrites =
+                    [ DiscordOverwriteBuilder()
+                        .For(guild.EveryoneRole)
+                        .Deny(Permissions.All)
+                      DiscordOverwriteBuilder()
+                        .For(role)
+                        .Allow(minPermsVoice)
+                      DiscordOverwriteBuilder()
+                        .For(teacherRole)
+                        .Allow(Permissions.All) ] )
+              |> Async.AwaitTask |> Async.Ignore ]
+            |> Async.Parallel |> Async.RunSynchronously |> ignore } )
         |> Async.Sequential |> Async.RunSynchronously |> ignore

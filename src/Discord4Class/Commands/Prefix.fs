@@ -2,35 +2,49 @@ namespace Discord4Class.Commands
 
 open DSharpPlus
 open DSharpPlus.EventArgs
-open Discord4Class.Helpers.Messages
+open Discord4Class.Constants
 open Discord4Class.Helpers.Permission
-open Discord4Class.Repositories.GuildConfiguration
+open Discord4Class.Helpers.Messages
+open Discord4Class.Repositories.GuildData
 open Discord4Class.Config.Types
+open Discord4Class.CommandsManager
 
 module Prefix =
 
-    [<Literal>]
-    let RequiredPerms = Permissions.Administrator
-    [<Literal>]
-    let PrefixMaxSize = 2
-
-    let exec app guild _ newPrefix (e : MessageCreateEventArgs) = async {
-        if checkPermissions e RequiredPerms then
-            newPrefix
-            |> function
-                | s when s = guild.CommandPrefix ->
-                    guild.Lang.PrefixNoChange
-                | s when s = "" ->
-                    guild.Lang.PrefixMissingArg guild.CommandPrefix
-                | s when s.Length > PrefixMaxSize ->
-                    guild.Lang.PrefixTooLong PrefixMaxSize
-                | s ->
-                    { GC.Base with
-                        _id = e.Guild.Id
+    let main app guild (client: DiscordClient) args memb (e: MessageCreateEventArgs) = async {
+        match args with
+        | _ :: _ when checkPermissions memb e.Channel GuildPrivilegedPerm ->
+            guild.Lang.PrefixNoPermission guild.Lang.ManageGuild
+        | (newPrefix: string) :: _ ->
+            match newPrefix with
+            | s when s = guild.CommandPrefix -> guild.Lang.PrefixNoChange
+            | s when s.Length > PrefixMaxSize ->
+                guild.Lang.PrefixTooLong PrefixMaxSize
+            | s ->
+                GD.Update.Set((fun gd -> gd.CommandPrefix), s)
+                |> GD.InsertOrUpdate app.Db guild.IsConfigOnDb
+                    { GD.Base with
+                        Id = e.Guild.Id
                         CommandPrefix = Some s }
-                    |> GC.InsertUpdate app.Db guild.IsConfigOnDb
-                    |> Async.RunSynchronously
+                |> Async.RunSynchronously
 
-                    guild.Lang.PrefixSuccess newPrefix
-            |> sendMessage e.Channel |> ignore
+                guild.Lang.PrefixSuccess newPrefix
+        | [] ->
+            "  1) `" + guild.CommandPrefix + "`" +
+            if app.CommandByMention then "\n  2) " + client.CurrentUser.Mention
+            else ""
+            |> guild.Lang.PrefixActualValue
+        |> sendMessage e.Channel |> ignore
     }
+
+    let command =
+        { BaseCommand with
+            Names = [ "prefix" ]
+            Description = fun gc ->
+                gc.Lang.PrefixDescription gc.CommandPrefix gc.Lang.PrefixUsage
+            Permissions = NoPerms
+            MaxArgs = 1
+            RateLimits = [
+                { Allowed = 2uy
+                  Interval = 10UL } ]
+            Function = main }

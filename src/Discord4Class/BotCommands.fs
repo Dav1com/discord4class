@@ -1,25 +1,40 @@
+#nowarn "40"
 namespace Discord4Class
 
-open DSharpPlus
-open DSharpPlus.EventArgs
-open Discord4Class.Config.Types
+open Discord4Class.CommandsManager.Types
+open Discord4Class.CommandsManager.Manager
 open Discord4Class.Commands
 
 module BotCommands =
 
-    let (BotCommands : Map<string, AppConfig -> GuildConfig -> DiscordClient -> string -> MessageCreateEventArgs -> unit Async>) =
-        [
-            ("ping", Ping.exec)
-            ("lang", Lang.exec)
-            ("language", Lang.exec)
-            ("prefix", Prefix.exec)
-            ("init", Init.exec)
-            ("destroy", Destroy.exec)
-            ("config", Config.exec)
-            ("q", Question.exec)
-            ("question", Question.exec)
-            ("teams", Teams.exec)
-            ("mute", Mute.exec)
-            ("math", LatexMath.exec)
-        ]
-        |> Map.ofSeq
+    let rec Commands =
+        BotCommands (seq { // I need this to be lazy (it evaluates itself on the help command)
+            Ping.command
+            Lang.command
+            Prefix.command
+            Init.command
+            Destroy.command
+            { Config.command with
+                SubCommands = BotCommands [
+                    ConfigGet.command
+                    ConfigSet.command
+                    ConfigUnset.command ] }
+            { QuestionTeacher.command with
+               SubCommands = BotCommands [
+                   QuestionTeacherNext.command
+                   QuestionTeacherCount.command ] }
+            Question.command
+            { Teams.command with
+                SubCommands = BotCommands [
+                    TeamsMake.command
+                    TeamsSize.command
+                    TeamsManual.command
+                    TeamsDestroy.command
+                    TeamsMove.command
+                    TeamsReturn.command ] }
+            // This will wait until next ver, with the hand command
+            // Mute.command
+            LatexMath.command
+            Help.dmCommand Commands
+            Help.command Commands
+        })

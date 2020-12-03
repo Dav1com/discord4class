@@ -4,25 +4,38 @@ open DSharpPlus.EventArgs
 open Discord4Class.Constants
 open Discord4Class.Helpers.Messages
 open Discord4Class.Config.Types
+open Discord4Class.CommandsManager
 
 module LatexMath =
 
     [<Literal>]
-    let LatexApiEndpoint = "https://latex.codecogs.com/png.latex?"
-
+    let private latexApiEndpoint = "https://latex.codecogs.com/png.latex?"
     [<Literal>]
-    let DefaultArgs = "\\dpi{120}&space;\\bg_white&space;\\large&space;"
+    let private defaultArgs = "\\dpi{120}&space;\\bg_white&space;\\large&space;"
 
-    let exec app _guild client equation (e : MessageCreateEventArgs) = async {
-        equation
-        |> String.collect (function
-            | ' ' -> "&space;"
-            | c -> c.ToString()
-        )
-        |> function
-        | s when s.Length > MessageMaxLength ->
-            addReaction e.Message client app.Emojis.No
-        | s ->
-            sprintf "%s%s%s" LatexApiEndpoint DefaultArgs s
-            |> sendMessage e.Channel |> ignore
+    let private eqMaxLength =
+        MessageMaxLength - latexApiEndpoint.Length - defaultArgs.Length
+
+    let main app guild client args memb (e : MessageCreateEventArgs) = async {
+        match args with
+        | (equation: string) :: _ ->
+            match equation.Replace(" ", "&space;") with
+            | s when s.Length > eqMaxLength ->
+                addReaction e.Message app.Emojis.No
+            | s ->
+                latexApiEndpoint + defaultArgs + s
+                |> sendMessage e.Channel |> ignore
+        | [] -> addReaction e.Message app.Emojis.No
     }
+
+    let command =
+        { BaseCommand with
+            Names = [ "math" ]
+            Description = fun gc ->
+                gc.Lang.MathDescription gc.CommandPrefix gc.Lang.MathUsage
+            RateLimits = [
+                { Allowed = 5uy
+                  Interval = 10UL }
+                { Allowed = 50uy
+                  Interval = 600UL } ]
+            Function = main }

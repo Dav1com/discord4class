@@ -4,23 +4,19 @@ open DSharpPlus.Entities
 
 [<AutoOpen>]
 module Students =
-    let getStudents onlineOnly (teacherRole : DiscordRole) (classVoice : DiscordChannel) (e : DiscordGuild) =
-        e.Members
-        |> Seq.map (fun x -> x.Value)
-        |> Seq.filter (fun memb ->
+
+    let getStudents onlineOnly (teacherRole: DiscordRole) (classVoice: DiscordChannel) (guild: DiscordGuild) =
+        guild.Members
+        |> Seq.filter (fun kv ->
+            let memb = kv.Value
             not memb.IsBot &&
-            (
-                not onlineOnly ||
-                (
-                    not (isNull memb.VoiceState) &&
-                    memb.VoiceState.Channel.Id = classVoice.Id
-                )
+            ( not onlineOnly ||
+              ( not (isNull memb.VoiceState) &&
+                memb.VoiceState.Channel.Id = classVoice.Id )
             ) &&
             memb.Roles
-            |> Array.ofSeq
-            |> Array.tryFind (fun role -> role.Id = teacherRole.Id)
-            |> function
-                | Some _ -> false
-                | None -> true
-        )
-        |> Array.ofSeq
+            |> List.ofSeq
+            |> List.tryFind ((=) teacherRole)
+            |> fun o -> o.IsNone )
+        |> Seq.map (fun kv -> kv.Value)
+        |> Seq.toArray
