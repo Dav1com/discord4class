@@ -15,7 +15,6 @@ module ConfigGet =
             | Some (TextChannelId None) | Some (VoiceChannelId None) | Some (RoleId None) ->
                 guild.Lang.ConfigGetValueNull configName
                 |> sendMessage e.Channel |> ignore
-                addReaction e.Message app.Emojis.No
             | Some (TextChannelId (Some id)) | Some (VoiceChannelId (Some id)) ->
                 if e.Guild.Channels.ContainsKey id then
                     e.Guild.Channels.[id].Mention
@@ -31,7 +30,6 @@ module ConfigGet =
             | None ->
                 guild.Lang.ConfigInvalidName
                 |> sendMessage e.Channel |> ignore
-                addReaction e.Message app.Emojis.No
         | _ ->
             guild.Lang.ConfigGetMissingName guild.CommandPrefix
             |> sendMessage e.Channel |> ignore
