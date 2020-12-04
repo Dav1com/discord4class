@@ -7,8 +7,7 @@ use plataform, into a decent option for online education
 
 ### Multilangual
 Use, eg. `;lang es-es` to change the bot language to Spanish, currently only
-supports `es-us` and `es-es`, you are a native speaker and want to help me add
-translations?
+supports `es-us` and `es-es`.
 
 ### Teams making
 Teachers can create and manage teams, create then manually giving the
