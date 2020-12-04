@@ -15,12 +15,9 @@ open Discord4Class.CommandsManager
 module Init =
 
     let private teacherPerms =
-          Permissions.CreateInstantInvite
-        + Permissions.AttachFiles
+          Permissions.AttachFiles
         + Permissions.AddReactions
         + Permissions.ManageMessages
-        + Permissions.ManageNicknames
-        + Permissions.MentionEveryone
         + Permissions.MoveMembers
         + Permissions.MuteMembers
         + Permissions.ReadMessageHistory
