@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.1.0]
 ### Added
 - Command `ping` displays the websocket ping
 - Command `config <get|set|unset> <config-name> [new-value]` manage the bot settings
@@ -24,3 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per guild bot language, available languages are English and Spanish
 - Per guild prefix personalization
 - Per guild persistence on MongoDB
+
+[Unreleased]: https://github.com/Dav1com/discord4class/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Dav1com/discord4class/releases/tag/v0.1.0

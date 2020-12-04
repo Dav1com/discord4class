@@ -6,7 +6,7 @@ module Constants =
     [<Literal>]
     let AppName = "Discord For Classrooms"
     [<Literal>]
-    let AppVersion = "0.0.0"
+    let AppVersion = "0.1.0"
     [<Literal>]
     let IniPath = "config.ini"
     [<Literal>]
@@ -24,7 +24,7 @@ module Constants =
     [<Literal>]
     let PrefixMaxSize = 2
     [<Literal>]
-    let TeamsChannelsFactor = 3 // channels per teams
+    let TeamsChannelsFactor = 3 // channels per team
     [<Literal>]
     let DiscordDomain = "discord.com/"
     [<Literal>]
