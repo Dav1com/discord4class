@@ -9,6 +9,20 @@ open Discord4Class.Config.Types
 [<AutoOpen>]
 module CreateTeams =
 
+    let private botPermissions =
+          Permissions.ManageChannels
+        + Permissions.AccessChannels
+        + Permissions.SendMessages
+        + Permissions.ManageMessages
+        + Permissions.EmbedLinks
+        + Permissions.AttachFiles
+        + Permissions.ReadMessageHistory
+        + Permissions.UseExternalEmojis
+        + Permissions.AddReactions
+        + Permissions.UseVoice
+        + Permissions.MuteMembers
+        + Permissions.MoveMembers
+
     let private extractTeamNumber guild (name: string) =
         if guild.Lang.TeamsNumberIsRight = "1" then
             let pos = name.LastIndexOf ' '
@@ -45,13 +59,9 @@ module CreateTeams =
         teams
         |> Map.toSeq
         |> Seq.map (fun (name, team) -> async {
-            let! category =
-                guild.CreateChannelCategoryAsync name
-                |> Async.AwaitTask
             let role = roles.[name]
-            [ guild.CreateChannelAsync(
-                name, ChannelType.Text, category,
-                overwrites =
+            let! category =
+                guild.CreateChannelCategoryAsync(name,
                     [ DiscordOverwriteBuilder()
                         .For(guild.EveryoneRole)
                         .Deny(Permissions.All)
@@ -60,20 +70,16 @@ module CreateTeams =
                         .Allow(minPermsText)
                       DiscordOverwriteBuilder()
                         .For(teacherRole)
-                        .Allow(Permissions.All) ] )
+                        .Allow(Permissions.All)
+                      DiscordOverwriteBuilder()
+                        .For(guild.CurrentMember)
+                        .Allow(botPermissions) ] )
+                |> Async.AwaitTask
+            [ guild.CreateChannelAsync(
+                name, ChannelType.Text, category )
               |> Async.AwaitTask |> Async.Ignore
               guild.CreateChannelAsync(
-                name, ChannelType.Voice, category,
-                overwrites =
-                    [ DiscordOverwriteBuilder()
-                        .For(guild.EveryoneRole)
-                        .Deny(Permissions.All)
-                      DiscordOverwriteBuilder()
-                        .For(role)
-                        .Allow(minPermsVoice)
-                      DiscordOverwriteBuilder()
-                        .For(teacherRole)
-                        .Allow(Permissions.All) ] )
+                name, ChannelType.Voice, category)
               |> Async.AwaitTask |> Async.Ignore ]
             |> Async.Parallel |> Async.RunSynchronously |> ignore } )
         |> Async.Sequential |> Async.RunSynchronously |> ignore
