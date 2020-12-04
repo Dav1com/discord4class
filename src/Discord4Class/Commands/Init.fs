@@ -28,7 +28,7 @@ module Init =
             ( e2.Content.ToLower() = guild.Lang.Yes ||
               e2.Content.ToLower() = guild.Lang.No ) )
 
-    let private afterConfirmation app guild client (confirmMsg: DiscordMessage) (e: MessageCreateEventArgs) (result: InteractivityResult<DiscordMessage>) =
+    let private afterConfirmation app guild (memb: DiscordMember) (confirmMsg: DiscordMessage) (e: MessageCreateEventArgs) (result: InteractivityResult<DiscordMessage>) =
         if result.TimedOut then
             guild.Lang.ConfirmationTimeoutMessage
             |> modifyMessage confirmMsg |> ignore
@@ -49,9 +49,7 @@ module Init =
                         Nullable true,
                         Nullable true )
                     |> Async.AwaitTask |> Async.RunSynchronously
-                e.Guild.GetMemberAsync e.Author.Id
-                |> Async.AwaitTask |> Async.RunSynchronously
-                |> fun m -> m.GrantRoleAsync teacherRole
+                memb.GrantRoleAsync teacherRole
                 |> Async.AwaitTask |> Async.RunSynchronously
 
                 // category container
@@ -67,7 +65,7 @@ module Init =
                         overwrites = [
                             DiscordOverwriteBuilder()
                                 .For(teacherRole)
-                                .Allow(Permissions.All)
+                                .Allow(minPermsText)
                             DiscordOverwriteBuilder()
                                 .For(e.Guild.EveryoneRole)
                                 .Deny(Permissions.All)
@@ -86,10 +84,9 @@ module Init =
                             DiscordOverwriteBuilder()
                                 .For(e.Guild.EveryoneRole)
                                 .Allow(minPermsText)
-                                .Deny(Permissions.All - minPermsText)
                             DiscordOverwriteBuilder()
                                 .For(teacherRole)
-                                .Allow(Permissions.All)
+                                .Allow(minPermsText)
                             DiscordOverwriteBuilder()
                                 .For(e.Guild.CurrentMember)
                                 .Allow(minPermsText ||| Permissions.UseExternalEmojis) ] )
@@ -152,7 +149,7 @@ module Init =
             messageCreated guild e.Message,
             Nullable (TimeSpan.FromSeconds 10.0))
         |> Async.AwaitTask |> Async.RunSynchronously
-        |> afterConfirmation app guild client confirmMsg e
+        |> afterConfirmation app guild memb confirmMsg e
     }
 
     let command =
