@@ -35,7 +35,7 @@ module Question =
                     |> Async.RunSynchronously
                     addReaction e.Message app.Emojis.Sended
                 | Some count ->
-                    if count > maxQuestions then
+                    if count >= maxQuestions then
                         addReaction e.Message app.Emojis.No
                     else
                         Qs.PushQuestion app.Db e.Guild.Id
