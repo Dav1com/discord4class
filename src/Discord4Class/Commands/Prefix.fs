@@ -13,9 +13,7 @@ module Prefix =
 
     let main app guild (client: DiscordClient) args memb (e: MessageCreateEventArgs) = async {
         match args with
-        | _ :: _ when checkPermissions memb e.Channel GuildPrivilegedPerm ->
-            guild.Lang.PrefixNoPermission guild.Lang.ManageGuild
-        | (newPrefix: string) :: _ ->
+        | (newPrefix: string) :: _ when checkPermissions memb e.Channel GuildPrivilegedPerm ->
             match newPrefix with
             | s when s = guild.CommandPrefix -> guild.Lang.PrefixNoChange
             | s when s.Length > PrefixMaxSize ->
@@ -29,6 +27,8 @@ module Prefix =
                 |> Async.RunSynchronously
 
                 guild.Lang.PrefixSuccess newPrefix
+        | _ :: _ ->
+            guild.Lang.PrefixNoPermission guild.Lang.ManageGuild
         | [] ->
             "  1) `" + guild.CommandPrefix + "`" +
             if app.CommandByMention then "\n  2) " + client.CurrentUser.Mention
