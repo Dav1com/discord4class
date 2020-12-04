@@ -9,7 +9,6 @@ open Discord4Class.Config.Types
 module ChannelDeleted =
 
     let main config client (e: ChannelDeleteEventArgs) = async {
-        printfn "TEST: %A" e.Channel
         GD.Operation.FindById config.App.Db e.Guild.Id
         |> Async.RunSynchronously
         |> function
